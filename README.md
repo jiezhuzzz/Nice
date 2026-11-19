@@ -1,4 +1,10 @@
-# NICE
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/nice-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/nice-light.svg">
+    <img src="assets/brand/nice-light.svg" alt="NICE" width="360">
+  </picture>
+</h1>
 
 **NI**x **C**onfigures **E**verything
 
