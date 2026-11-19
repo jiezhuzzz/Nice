@@ -44,6 +44,7 @@
       colorLevel = 3;
       defaultPadding = " ";
       defaultPaddingSide = "both";
+      numberFormat.percent.style = "whole";
       # Must exceed statusLine.refreshInterval, or every timed re-render would
       # re-fork git.
       gitCacheTtlSeconds = 30;
@@ -74,7 +75,7 @@
           (sep "sep-worktree")
           (seg "worktree" "worktree-name" nord.frost0 {rawValue = true;})
           (sep "sep-ctx")
-          (seg "ctx" "context-percentage" nord.green {metadata.inverse = "true";})
+          (seg "ctx" "context-percentage" nord.green {metadata.label = "Ctx: ";})
           (sep "sep-usage")
           usageWidget
           (sep "sep-cost")
