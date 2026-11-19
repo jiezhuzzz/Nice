@@ -1,6 +1,3 @@
-# Block system sleep until Noctalia has actually locked the session: a
-# systemd-inhibit guard unit, a suspend wrapper that waits for the lock
-# acknowledgement, and the noctalia hooks that arm/release the guard.
 {
   den.aspects.desktop.noctalia.sleep-guard.homeManager = {
     config,
@@ -41,8 +38,6 @@
     programs.noctalia.settings = {
       shell.session.power.suspend = "${secureSuspend}";
 
-      # Track the compositor-acknowledged lock state. The guard blocks sleep
-      # while unlocked and is released only after session_locked fires.
       hooks = {
         started = startGuard;
         session_locked = stopGuard;

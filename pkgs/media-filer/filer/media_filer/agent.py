@@ -1,5 +1,3 @@
-"""Advisory classification via the Claude Code CLI. Claude returns JSON only;
-it never touches the filesystem — the orchestration is the sole actor."""
 from __future__ import annotations
 
 import json
@@ -23,8 +21,8 @@ Files:
 {files}
 """
 
-# Defense in depth: even though the prompt asks for pure JSON, forbid every
-# mutating tool so a misbehaving model still cannot alter the filesystem.
+# SAFETY: forbid every mutating tool so a model that ignores the JSON-only
+# prompt still cannot alter the filesystem.
 _DISALLOWED = "Write,Edit,MultiEdit,NotebookEdit,Bash,Task"
 
 

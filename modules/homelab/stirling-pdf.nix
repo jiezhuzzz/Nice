@@ -1,11 +1,3 @@
-# Stirling PDF — self-hosted PDF toolkit (merge/split/OCR/convert/sign, etc.).
-# Native NixOS service (DynamicUser); the module bundles the full PDF toolchain
-# (libreoffice, ocrmypdf, tesseract, ghostscript, qpdf, ...). Configured via env
-# vars. Stateless tool; advanced-ops/Calibre left off to keep the closure lean.
-#
-# v2 ships with security.enableLogin=true by default (login/account subsystem is
-# compiled in), so we disable it via SECURITY_ENABLELOGIN — single-user tool
-# behind the firewall/tailnet, no auth needed.
 {
   den.aspects.homelab.stirling-pdf.nixos = {config, ...}: {
     nice.web.services.pdf = {
@@ -26,8 +18,7 @@
       };
     };
 
-    # Upstream has no openFirewall option (the port is an opaque env var, so the
-    # module can't know it); allowedTCPPorts is exactly what openFirewall would do.
+    # Upstream has no openFirewall option.
     networking.firewall.allowedTCPPorts = [config.nice.web.services.pdf.port];
   };
 }

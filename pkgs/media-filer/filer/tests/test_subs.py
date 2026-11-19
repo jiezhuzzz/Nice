@@ -8,7 +8,7 @@ def test_find_subtitles_siblings_and_subfolder(tmp_path):
     (tmp_path / "movie.en.srt").write_text("s")
     (tmp_path / "Subs").mkdir()
     (tmp_path / "Subs" / "French.srt").write_text("s")
-    (tmp_path / "sample.srt").write_text("s")  # sample -> excluded
+    (tmp_path / "sample.srt").write_text("s")
     found = {p.name for p in subs.find_subtitles(tmp_path)}
     assert found == {"movie.en.srt", "French.srt"}
 
@@ -66,4 +66,4 @@ def test_vobsub_idx_sub_no_collision():
     d2 = subs.subtitle_dest(vdest, Path("m.en.sub"), taken)
     taken.add(d2)
     assert d1.name == "M (2020).en.idx"
-    assert d2.name == "M (2020).en.sub"  # different ext -> no collision
+    assert d2.name == "M (2020).en.sub"

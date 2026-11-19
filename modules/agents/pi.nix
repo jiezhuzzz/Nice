@@ -1,8 +1,7 @@
 {inputs, ...}: {
-  # Only `packages.<system>.default` is consumed. Do NOT import upstream's
-  # homeManagerModules.default: it hardcodes ~/.pi/agent/themes and rewrites
-  # settings.json, fighting the read-only store symlink home-manager generates
-  # from `settings` below.
+  # Do not import upstream's homeManagerModules.default: it hardcodes
+  # ~/.pi/agent/themes and rewrites settings.json, fighting the read-only store
+  # symlink.
   flake-file.inputs.pi-catppuccin = {
     url = "github:otahontas/pi-coding-agent-catppuccin";
     inputs.nixpkgs.follows = "nixpkgs";
@@ -36,8 +35,6 @@
         green = "#a3be8c";
         purple = "#b48ead";
       };
-      # Branch and worktree sit in conditional groups so their separator leaves
-      # with them outside a repo or a linked worktree.
       format = "$model $thinking${sep}$directory(${sep}$git_branch)(${sep}$git_worktree)${sep}$context${sep}$cost";
       model = {
         format = "[$model]($style)";
@@ -94,7 +91,7 @@
         quietStartup = true;
         hideThinkingBlock = false;
         packages = [
-          # "npm:context-mode" # sandboxed code execution to shrink context use
+          # "npm:context-mode"
           "npm:pi-subagents"
           "npm:pi-web-access"
           "npm:@narumitw/pi-starship"
@@ -111,8 +108,8 @@
       };
     };
 
-    # pi-starship rejects symlinks; reset a regular copy from Nix on activation.
-    # Changes made through `/starship` last only until the next activation.
+    # pi-starship rejects symlinks, so changes made through `/starship` last only
+    # until the next activation.
     home.activation.piStarshipSettings = lib.hm.dag.entryAfter ["linkGeneration"] ''
       run ${pkgs.coreutils}/bin/install -Dm600 \
         ${(pkgs.formats.toml {}).generate "pi-starship.toml" piStarshipSettings} \

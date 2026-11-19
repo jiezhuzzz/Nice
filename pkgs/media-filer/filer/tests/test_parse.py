@@ -22,7 +22,7 @@ def test_season_pack_name_has_no_episode():
     c = parse_name("Severance.S02.1080p.WEB-DL-GRP")
     assert c.type == "episode"
     assert c.season == 2
-    assert c.episode is None  # per-file parsing supplies episodes later
+    assert c.episode is None
 
 
 def test_cjk_title_is_not_confident():
@@ -31,7 +31,7 @@ def test_cjk_title_is_not_confident():
 
 
 def test_multi_year_title_does_not_crash():
-    # guessit returns a list for year here; _scalar must collapse it
+    # guessit returns a list for year here.
     c = parse_name("Some.Show.2020.2021.1080p.WEB-DL-GRP")
     assert isinstance(c.year, (int, type(None)))
 
@@ -39,10 +39,9 @@ def test_multi_year_title_does_not_crash():
 def test_is_cjk():
     assert is_cjk("基督山伯爵") is True
     assert is_cjk("The Matrix") is False
-    assert is_cjk("Amélie") is False  # accented latin is fine
+    assert is_cjk("Amélie") is False
 
 
 def test_season_pack_is_confident():
-    # a season-pack name has a season but no episode; still routable
     c = parse_name("Severance.S02.1080p.WEB-DL-GRP")
     assert confident(c) is True

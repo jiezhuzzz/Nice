@@ -1,28 +1,9 @@
-# rclone remotes + auto-mounts. Cross-platform: home-manager emits systemd
-# user services on Linux and launchd agents on macOS.
-# macOS additionally needs a FUSE provider for mounts (fuse-t cask).
-#
-# Where a token lives depends on whether this host's *system* layer decrypts
-# it, which is not the same question as which platform it is: the macOS hosts
-# and nixmachine both get it from agenix, while chameleon and the other
-# standalone home-manager servers have no system agenix at all and take a
-# hand-placed file under the XDG data dir. Keying off the secret's own
-# declaration keeps those two cases apart and makes the path track whatever
-# agenix actually chose.
+# macOS mounts need a FUSE provider (fuse-t cask).
 {
   den.aspects.rclone = {
-    # NixOS support for these mounts: the setuid fusermount3 they mount through.
-    #
-    # programs.fuse.enable is what puts a setuid fusermount3 in /run/wrappers/bin,
-    # which is where nixpkgs' fuse is compiled to look for its mount helper
-    # (-DFUSERMOUNT_DIR, set in pkgs/os-specific/linux/fuse/common.nix). Without it
-    # libfuse falls back to the plain copy in rclone's own closure, which carries
-    # no setuid bit, so mount(2) returns EPERM and every mount unit dies with
-    # "fusermount3: mount failed: Operation not permitted". The macOS hosts mount
-    # through fuse-t, and the standalone-home-manager servers run on distros that
-    # ship their own setuid helper, which leaves nixmachine as the only NixOS host
-    # that mounts anything. userAllowOther stays off — these mounts are
-    # single-user and pass no allow_other.
+    # nixpkgs' fuse looks for its setuid mount helper in /run/wrappers/bin
+    # (-DFUSERMOUNT_DIR); without it libfuse falls back to the non-setuid copy in
+    # rclone's closure and every mount fails with EPERM.
     nixos.programs.fuse.enable = true;
 
     homeManager = {
@@ -31,6 +12,8 @@
       pkgs,
       ...
     }: let
+      # Standalone home-manager servers have no system agenix and take a
+      # hand-placed token under the XDG data dir.
       systemSecrets = osConfig.age.secrets or {};
       tokenPath = name: let
         secret = "rclone-${name}-token";
@@ -40,10 +23,8 @@
         else "${config.xdg.dataHome}/rclone/${name}-token";
       gdriveTokenPath = tokenPath "gdrive";
       boxTokenPath = tokenPath "box";
-      # Drop macOS metadata cruft (AppleDouble shadow files emitted whenever a
-      # file with xattrs is written to a non-xattr-supporting FS like fuse-t/NFS,
-      # plus Finder's .DS_Store). Bidirectional in mount mode: cruft never
-      # reaches the cloud and never appears in the local mount view.
+      # macOS emits AppleDouble `._*` shadow files when writing xattrs to a
+      # filesystem without xattr support, such as fuse-t.
       rcloneFilter = pkgs.writeText "rclone-mount-filter" ''
         - ._*
         - .DS_Store

@@ -1,11 +1,10 @@
-# macOS system defaults (the `defaults write` equivalents).
 {
   den.aspects.macos.defaults.darwin = {
     system.defaults = {
       dock = {
         autohide = true;
         show-recents = false;
-        mru-spaces = false; # don't auto-rearrange spaces by most-recent use
+        mru-spaces = false;
         tilesize = 48;
 
         persistent-apps = [
@@ -19,15 +18,15 @@
         FXEnableExtensionChangeWarning = false;
         ShowPathbar = true;
         ShowStatusBar = true;
-        FXDefaultSearchScope = "SCcf"; # search current folder by default
-        FXPreferredViewStyle = "Nlsv"; # list view
+        FXDefaultSearchScope = "SCcf";
+        FXPreferredViewStyle = "Nlsv";
         _FXShowPosixPathInTitle = true;
       };
 
       NSGlobalDomain = {
         AppleICUForce24HourTime = true;
         AppleShowAllExtensions = true;
-        ApplePressAndHoldEnabled = false; # enable key repeat instead of accent popup
+        ApplePressAndHoldEnabled = false;
         InitialKeyRepeat = 15;
         KeyRepeat = 2;
         NSAutomaticCapitalizationEnabled = false;
@@ -45,13 +44,9 @@
 
       loginwindow.GuestEnabled = false;
 
-      # Sonoma+: disable "click wallpaper to reveal desktop" — clicking empty
-      # space on the desktop should do nothing, not hide all windows.
       WindowManager.EnableStandardClickToShowDesktop = false;
-      # Disable Stage Manager entirely.
       WindowManager.GloballyEnabled = false;
-      # Sequoia tiling: disable edge-drag, top-edge-drag, and option-drag tiling
-      # so they don't fight with Aerospace's window management.
+      # Sequoia's built-in tiling fights with AeroSpace.
       WindowManager.EnableTilingByEdgeDrag = false;
       WindowManager.EnableTopTilingByEdgeDrag = false;
       WindowManager.EnableTilingOptionAccelerator = false;

@@ -26,6 +26,6 @@ def test_conflicting_dest_raises(tmp_path):
     other = tmp_path / "other.mkv"
     other.write_text("different")
     dest = tmp_path / "m.mkv"
-    hardlink(other, dest)  # dest now points at `other`
+    hardlink(other, dest)
     with pytest.raises(LinkConflict):
         hardlink(src, dest)

@@ -1,47 +1,21 @@
-# Forgejo Actions runner — the CI executor for the forge in ./forge.nix. One
-# globally-scoped runner, jobs executed as podman containers.
+# The module needs the runner UUID at eval time (it has no uuid_url). Forgejo
+# and the runner derive it from the first 16 characters of the shared secret
+# (gouuid.FromBytes over their ASCII bytes), so pinning that prefix fixes the
+# UUID while the remaining 96 bits are minted on the box. `forgejo-cli actions
+# register` drives Forgejo's internal HTTP API, so it must run after
+# forgejo.service.
 #
-# ── Registration ───────────────────────────────────────────────────────────
-# services.forgejo-runner takes a pre-registered UUID + token pair rather than a
-# registration token, so forgejo-runner-token.service registers one itself via
-# `forgejo-cli actions register` with a 40-hex shared secret. That secret *is*
-# the token, and both Forgejo and the runner derive the UUID from its first 16
-# characters (gouuid.FromBytes over their ASCII bytes) — so pinning that prefix
-# here makes the UUID static at eval time, which the module needs because it
-# has no uuid_url, while the remaining 96 random bits are minted on the box.
-# The secret is machine-local and meaningless off this box, which is why it is
-# not an agenix secret like the Cloudflare or provider keys. It is minted once
-# and kept, so the runner keeps one identity in the admin UI; registration is
-# idempotent and re-runs every start. It has to run after forgejo.service
-# because the CLI drives Forgejo's internal HTTP API rather than the database.
+# SAFETY: job containers reach the forge through the podman bridge gateway,
+# where :443 is open. caddy.nix must keep refusing every other vhost to the
+# bridge subnet, or CI would arrive logged in as jie via the SSO headers.
 #
-# ── Reaching the forge from inside a job container ─────────────────────────
-# Jobs clone from GITHUB_SERVER_URL, which Forgejo fills in from ROOT_URL, so a
-# container has to reach https://git.jiezhu.me itself — loopback is its own
-# namespace and the tailnet address is not routable from the bridge. Two things
-# make that work, and the second is load-bearing for security:
-#
-#   - --add-host points the name at the podman bridge gateway and the firewall
-#     admits :443 there. Jobs are pinned to the default bridge rather than the
-#     per-job networks forgejo-runner creates when `network` is empty, so the
-#     interface to open is a stable podman0 instead of a fresh 10.89.x bridge
-#     every run.
-#   - caddy.nix then refuses every vhost except git to a podman-bridge source.
-#     Without it a workflow could reach shiori and miniflux through the same
-#     front door, whose reverse_proxy blocks *set* an SSO header — CI would
-#     arrive already logged in as jie.
-#
-# The actions cache needs the same treatment, because the proxy URL is handed
-# to the container and so has to name an address it can route to. Its port is
-# pinned (upstream picks a random one per start) so the firewall can admit
-# exactly one.
+# The cache proxy port is pinned because upstream picks a random one per start.
 {nice, ...}: {
   den.aspects.homelab.forgejo.runner.nixos = {
     config,
     lib,
     ...
   }: let
-    # podman's default bridge and the gateway address containers see the host as.
     bridge = "podman0";
     inherit (nice.facts.podman) gateway;
     cacheProxyPort = 8100;
@@ -68,16 +42,16 @@
           inherit uuid;
         };
 
-        # `ubuntu-latest` so workflows lifted from GitHub match without an edit.
-        # A plain tag rather than a digest like the oci-containers pins
-        # elsewhere: this is the image a *job* runs in, and pinning it would
-        # freeze CI's toolchain to whatever was current the day this was written.
+        # A tag rather than a digest like the oci-containers pins elsewhere:
+        # pinning would freeze CI's toolchain.
         runner.labels = [
           "ubuntu-latest:docker://node:24-bookworm"
           "docker:docker://node:24-bookworm"
         ];
 
         container = {
+          # An empty `network` gives each job a fresh 10.89.x bridge, which the
+          # firewall cannot name.
           network = "bridge";
           options = "--add-host=${domain}:${gateway}";
         };
@@ -101,10 +75,9 @@
         FORGEJO_CUSTOM = config.services.forgejo.customDir;
       };
 
-      # Assign before writing, and assert the length: `set -e` does not trip on a
-      # command substitution that fails inside an argument list, so writing the
-      # random half inline would persist a bare prefix on a failed read — and the
-      # file test below would then read as done and never retry.
+      # `set -e` does not trip on a command substitution that fails inside an
+      # argument list, so writing the random half inline would persist a bare
+      # prefix that the file test then never retries.
       script = ''
         if [ ! -s '${secretFile}' ]; then
           random=$(od -An -N12 -tx1 /dev/urandom | tr -d ' \n')
@@ -125,8 +98,6 @@
       };
     };
 
-    # Scoped to the bridge, so this admits job containers and nothing off-box:
-    # caddy for the clone/artifact traffic, and the runner's own cache proxy.
     networking.firewall.interfaces.${bridge}.allowedTCPPorts = [443 cacheProxyPort];
   };
 }

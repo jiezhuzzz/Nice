@@ -9,7 +9,6 @@
       lfs.enable = true;
       attributes = [
         "* text=auto"
-        # Encrypted secrets — never diff or merge.
         "*.age binary"
         "*.png binary"
         "*.jpg binary"

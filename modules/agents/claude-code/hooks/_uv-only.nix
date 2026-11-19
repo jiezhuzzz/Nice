@@ -1,4 +1,3 @@
-# Guard: Python runs through uv, never a bare interpreter or pip.
 {
   keywords = ["pip" "python"];
   deny = [
@@ -14,9 +13,6 @@
     fi
 
     if [[ "$cmd" =~ $sep(python3?)([[:space:]]|$) ]]; then
-      # `python -c` / `-m` / `--version` keep the interpreter and gain a `uv
-      # run` prefix; `python script.py` drops it, since uv picks the
-      # interpreter itself from the script's own metadata.
       if [[ "$cmd" =~ $sep(python3?)[[:space:]]+- ]]; then
         suggestion=$(sed -E "s@(^|[;&|(][[:space:]]*)python3?[[:space:]]@\1uv run python @g" <<<"$cmd")
       else

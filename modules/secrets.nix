@@ -1,5 +1,3 @@
-# Every agenix secret: name (decrypted to /run/agenix/<name>) → source file
-# under secrets/ and scope.
 {
   nice.secrets = {
     github-ssh-key = {

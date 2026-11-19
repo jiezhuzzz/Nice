@@ -1,6 +1,6 @@
 {
   den.aspects.oh-my-posh.homeManager = {config, ...}: let
-    # Nix doesn't support \uXXXX escapes; use fromJSON to get Unicode glyphs
+    # Nix strings have no \uXXXX escapes.
     icon = char: builtins.fromJSON ''"${char}"'';
   in {
     programs.oh-my-posh = {

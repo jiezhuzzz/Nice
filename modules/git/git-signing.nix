@@ -4,8 +4,6 @@
 {nice, ...}: {
   den.aspects.git-signing.homeManager = {lib, ...}: {
     programs.git.settings = {
-      # key:: prefix tells git to find the matching private key in the
-      # SSH agent — works with agent forwarding and local agents alike.
       user.signingkey = lib.mkDefault "key::${nice.user.signingKey}";
       gpg.format = "ssh";
       commit.gpgsign = true;

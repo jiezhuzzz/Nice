@@ -7,8 +7,7 @@
       };
       settings = {
         config-version = 2;
-        # v2 no longer infers persistent workspaces from keybindings — declare the
-        # five named workspaces explicitly so they stay alive even when empty.
+        # v2 no longer infers persistent workspaces from keybindings.
         persistent-workspaces = ["T" "B" "E" "C" "M"];
         enable-normalization-flatten-containers = true;
         enable-normalization-opposite-orientation-for-nested-containers = true;
@@ -54,8 +53,7 @@
             "if".app-id = "com.apple.AppStore";
             run = ["layout floating" "move-node-to-workspace M"];
           }
-          # Catch-all: anything not matched above floats by default.
-          # Specific rules win because aerospace stops at the first match.
+          # aerospace stops at the first match, so this catch-all must stay last.
           {
             "if" = "true";
             run = "layout floating";
@@ -86,11 +84,11 @@
           alt-comma = "layout accordion horizontal vertical";
           alt-f = "fullscreen";
           alt-shift-space = "layout floating tiling";
-          alt-t = "workspace T"; # terminal
-          alt-b = "workspace B"; # browser
-          alt-e = "workspace E"; # editor
-          alt-c = "workspace C"; # chat
-          alt-m = "workspace M"; # misc
+          alt-t = "workspace T";
+          alt-b = "workspace B";
+          alt-e = "workspace E";
+          alt-c = "workspace C";
+          alt-m = "workspace M";
           alt-shift-t = "move-node-to-workspace T";
           alt-shift-b = "move-node-to-workspace B";
           alt-shift-e = "move-node-to-workspace E";

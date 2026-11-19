@@ -1,5 +1,3 @@
-"""Find sidecar subtitle files, match them to a video, and compute Jellyfin
-sidecar destination names (video stem + `.lang[.flag]` + sub extension)."""
 from __future__ import annotations
 
 import re
@@ -15,7 +13,6 @@ _FLAGS = ("forced", "sdh", "cc")
 
 
 def find_subtitles(root: Path) -> list[Path]:
-    """All subtitle files under a torrent dir (siblings + Subs/ subfolders)."""
     if root.is_file():
         return [root] if root.suffix.lower() in SUB_EXTS else []
     out = []
@@ -26,9 +23,7 @@ def find_subtitles(root: Path) -> list[Path]:
 
 
 def language_tail(name: str) -> str:
-    """A `.lang[.flag...]` suffix from a subtitle filename, or "" if none.
-    Language via guessit's subtitle_language; forced/sdh/cc via a name scan
-    (guessit does not capture those)."""
+    """guessit does not capture forced/sdh/cc, hence the name scan."""
     g = guessit.guessit(name)
     parts: list[str] = []
     lang = g.get("subtitle_language")
@@ -43,8 +38,6 @@ def language_tail(name: str) -> str:
 
 
 def matches_episode(sub: Path, season, episode) -> bool:
-    """True if the subtitle's parsed episode equals `episode` and its season is
-    `season` or absent (falls back to the video's season)."""
     if episode is None:
         return False
     c = parse.parse_name(sub.name)
@@ -54,8 +47,6 @@ def matches_episode(sub: Path, season, episode) -> bool:
 
 
 def subtitle_dest(video_dest: Path, sub: Path, taken: set[Path]) -> Path:
-    """Sidecar dest: the video dest's stem + language tail + the sub's extension,
-    de-duplicated against `taken` (e.g. two same-language tracks -> `.2`)."""
     base = video_dest.stem
     tail = language_tail(sub.name)
     ext = sub.suffix.lower()

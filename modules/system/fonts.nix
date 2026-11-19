@@ -9,13 +9,10 @@
 
       noto-fonts-cjk-sans
       noto-fonts-cjk-serif
-      lxgw-wenkai # handwriting-style Chinese (kept for reading/decorative)
-      source-han-sans # PingFang-alike (思源黑体)
-      source-han-serif # serif companion (思源宋体)
+      lxgw-wenkai
+      source-han-sans
+      source-han-serif
 
-      # afdko#1216 (the aarch64 test crash that blocked this) is fixed upstream;
-      # nixpkgs afdko 5.0.1 handles arch-specific tests. Re-pin/disable only if a
-      # darwin-rebuild build starts failing in the afdko dependency again.
       noto-fonts-color-emoji
     ];
   };

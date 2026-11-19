@@ -1,9 +1,5 @@
-# dsh — the DeepSeek Harness (github:deepseek-ai/deepseek-harness). nixmachine
-# only, serving its browser UI at https://dsh.jiezhu.me through caddy (the `dsh`
-# entry in the nixos half below). No authentication of its own and the
-# agent runs commands as jie, so the tailnet is the whole access control — never
-# a LAN port or a non-loopback bind. Credentials are runtime state: set the
-# provider key in the UI's Settings → Models.
+# SAFETY: dsh has no authentication and its agent runs commands as jie, so the
+# tailnet is the whole access control: never a LAN port or a non-loopback bind.
 {
   den.aspects.homelab.dsh = {
     nixos = {
@@ -17,8 +13,6 @@
       };
     };
 
-    # Runs jie's systemd user manager at boot, not just during an SSH session —
-    # what keeps the dsh-web user unit (the homeManager half below) up.
     user.linger = true;
 
     homeManager = {
@@ -32,7 +26,7 @@
       llmAgents = inputs'.llm-agents.packages;
 
       # `dsh plugin` forwards to pnpm inside the profile dir, so pnpm has to be on
-      # dsh's PATH. Wrapped rather than added to home.packages globally.
+      # dsh's PATH.
       dsh = pkgs.symlinkJoin {
         name = "dsh-${llmAgents.dsh.version}";
         paths = [llmAgents.dsh];
@@ -46,8 +40,7 @@
       inherit (osConfig.nice.web.services.dsh) port;
       vhost = osConfig.nice.web.services.dsh.host;
 
-      # systemd user units read none of home.sessionVariables, so both consumers
-      # take these from here.
+      # systemd user units read none of home.sessionVariables.
       dshEnv = {
         DSH_HOME = "${config.xdg.dataHome}/dsh";
         DSH_TELEMETRY_DISABLED = "1";
@@ -74,7 +67,6 @@
             "--port ${toString port}"
             "--trusted-host ${vhost}"
           ];
-          # The initial workspace root the agent is sandboxed to.
           WorkingDirectory = "%h";
           Environment = lib.mapAttrsToList (name: value: "${name}=${value}") dshEnv;
           Restart = "on-failure";

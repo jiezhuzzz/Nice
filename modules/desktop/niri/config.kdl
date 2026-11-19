@@ -10,18 +10,9 @@ input {
         repeat-rate 25
         track-layout "global"
     }
-    // macOS-ish feel: adaptive accel, slightly slower base speed.
-    // accel-speed range is -1.0 .. 1.0.
     touchpad {
         tap
-        // Tap-and-drag: tap, then hold on the second tap to drag. This
-        // is libinput's default; stated explicitly so it is not lost.
         drag true
-        // clickfinger over libinput's button-areas default: press anywhere
-        // with one finger for left click, two fingers for right click,
-        // as on macOS. button-areas instead reserves the bottom-right
-        // corner for right click, which is easy to miss.
-        //
         // The physical click depends on touchpad-rebind.service in
         // modules/hosts/nixps/touchpad.nix — without that rebind the
         // pad intermittently reports no button press at all, and this
@@ -38,14 +29,7 @@ input {
         scroll-factor 0.500000
     }
 }
-// LG 14" 1920x1200 @ 120Hz, ~189 DPI.
-// variable-refresh-rate once caused cursor micro-stutter on this panel; it
-// moves smoothly again as of niri 26.04.
 output "eDP-1" {
-    // scale 1.0: render at the panel's native 1920x1200. Apps size in
-    // logical points, so 1.25 (1536x960 logical) inflates everything by
-    // 25% — most visibly the terminal, whose font-size 16 comes from the
-    // shared module and is tuned for macOS.
     scale 1.0
     transform "normal"
     mode "1920x1200@120.043000"
@@ -53,32 +37,26 @@ output "eDP-1" {
 }
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 prefer-no-csd
-// Rounded window corners, to match noctalia's shell surfaces.
-// clip-to-geometry is required as well: without it the window contents
-// still paint square corners underneath the rounded geometry.
-// 20 is the radius upstream recommends for v5.
+// Without clip-to-geometry the window contents still paint square corners
+// underneath the rounded geometry.
 window-rule {
     geometry-corner-radius 20
     clip-to-geometry true
 }
-// noctalia's own settings window: float it at a usable size instead of
-// letting it tile into the column layout.
 window-rule {
     match app-id="dev.noctalia.Noctalia"
     open-floating true
     default-column-width { fixed 1080; }
     default-window-height { fixed 920; }
 }
-// noctalia provides the bar, notifications and control centre. It is
-// started by its systemd user service (programs.noctalia.systemd.enable in
-// noctalia/shell.nix), NOT spawn-at-startup — doing both would run two copies.
+// noctalia is started by its systemd user service; adding spawn-at-startup
+// would run two copies.
 // https://docs.noctalia.dev/v5/compositor-settings/niri/
 // Required by noctalia: lets it act on notification buttons and raise
 // windows, which otherwise fail the xdg-activation serial check.
 debug {
     honor-xdg-activation-with-invalid-serial
 }
-// Draws the overview wallpaper behind noctalia's overview layer.
 layer-rule {
     match namespace="^noctalia-overview*"
     place-within-backdrop true
@@ -91,11 +69,7 @@ layout {
         top 0
         bottom 0
     }
-    // Neutral rather than an accent colour: niri's default sky blue and
-    // catppuccin mauve both read as a coloured frame around every window.
-    // surface2/surface0 keep a focus cue that does not draw the eye.
-    // `focus-ring { off; }` removes it entirely — but border is off too,
-    // so that leaves no focus indication at all with several columns open.
+    // Border is off, so this ring is the only focus indication.
     focus-ring {
         width 2
         active-color "@focusActive@"
@@ -156,10 +130,8 @@ binds {
     Alt+S { spawn-sh "noctalia msg panel-toggle control-center"; }
     Alt+Comma { spawn-sh "noctalia msg settings-toggle"; }
     Alt+Tab { spawn-sh "noctalia msg window-switcher"; }
-    // Routed through noctalia rather than wpctl/brightnessctl directly so
-    // its OSD actually appears — [osd.kinds] volume/brightness only fire
-    // for changes noctalia itself makes. The trade-off is that these keys
-    // do nothing if noctalia is not running.
+    // Routed through noctalia because its OSD only fires for changes
+    // noctalia itself makes.
     XF86AudioLowerVolume allow-when-locked=true { spawn-sh "noctalia msg volume-down"; }
     XF86AudioMute allow-when-locked=true { spawn-sh "noctalia msg volume-mute"; }
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "noctalia msg volume-up"; }

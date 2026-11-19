@@ -1,4 +1,3 @@
-"""Parse a release name into a normalized Candidate using guessit."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,7 +7,7 @@ import guessit
 
 @dataclass
 class Candidate:
-    type: str | None  # "movie" | "episode" | None
+    type: str | None
     title: str | None
     year: int | None
     season: int | None
@@ -16,16 +15,14 @@ class Candidate:
 
 
 def _scalar(value):
-    """guessit returns lists for multi-valued fields (e.g. two years). Take the
-    first element so downstream int()/str() never sees a list."""
+    """guessit returns lists for multi-valued fields (e.g. two years)."""
     if isinstance(value, list):
         return value[0] if value else None
     return value
 
 
 def is_cjk(s: str | None) -> bool:
-    """True if the string contains CJK / fullwidth characters (guessit mis-parses
-    these, so they force escalation to the agent)."""
+    """guessit mis-parses CJK / fullwidth characters."""
     if not s:
         return False
     for ch in s:
@@ -47,15 +44,12 @@ def parse_name(name: str) -> Candidate:
 
 
 def confident(c: Candidate) -> bool:
-    """Deterministic-confident only when we can route unambiguously. Anything
-    else (CJK title, missing type, movie without a year, episode without a
-    season) escalates to the agent."""
     if not c.title or is_cjk(c.title):
         return False
     if c.type == "movie":
         return c.year is not None
     if c.type == "episode":
-        # Episodes route on category + title + season; the episode NUMBER is
-        # resolved per-file (season packs carry no episode in the torrent name).
+        # Season packs carry no episode in the torrent name; it is resolved
+        # per file.
         return c.season is not None
     return False

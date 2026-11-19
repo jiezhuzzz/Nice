@@ -11,16 +11,9 @@
 
       nix.settings.experimental-features = ["nix-command" "flakes"];
 
-      # Run-time linker shim so unpatched, dynamically-linked binaries (e.g.
-      # tools fetched by language toolchains, VS Code / Cursor remote servers,
-      # prebuilt release binaries) can find an ld.so and the usual libraries
-      # under /run/current-system/sw/share/nix-ld/lib. Left at the default
-      # library set; add programs.nix-ld.libraries here if a specific binary
-      # needs more.
       programs.nix-ld.enable = true;
 
-      # Read by systemd-boot (nixmachine) and by lanzaboote (nixps), whose own
-      # configurationLimit defaults to this one.
+      # lanzaboote (nixps) also reads this: its configurationLimit defaults to it.
       boot.loader.systemd-boot.configurationLimit = 5;
       boot.loader.efi.canTouchEfiVariables = true;
 
@@ -41,16 +34,9 @@
     homeManager.home = {
       stateVersion = lib.mkDefault "26.05";
 
-      # Move a conflicting file to <name>.bak instead of aborting activation.
-      # Without this, any app that rewrites a home-manager-managed config in
-      # place fails the whole switch with "would be clobbered" — noctalia's
-      # theme templates did exactly that to ~/.config/ghostty/config by running
-      # `sed -i` over the store symlink.
-      #
-      # Note this trades a loud failure for a silent one: the file is replaced
-      # and the old copy left as .bak, so a config being fought over is no
-      # longer obvious from the switch output. Activation also still fails if
-      # the .bak name is itself taken, so stale backups need clearing.
+      # noctalia's theme templates `sed -i` over ~/.config/ghostty/config, which
+      # otherwise fails the whole switch with "would be clobbered". Activation
+      # still fails if the .bak name is itself taken.
       backupFileExtension = "bak";
     };
 

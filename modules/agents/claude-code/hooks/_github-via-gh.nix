@@ -1,18 +1,3 @@
-# Guard: GitHub is read through the `gh` CLI, never fetched as a web page.
-#
-# Fetching a github.com URL is unauthenticated, so private repos 404 and the
-# anonymous rate limit applies, and what comes back is the furniture around a
-# record rather than the record — a PR without its diff or review threads, a
-# file inside a viewer, a run without its logs. `gh` is already logged in and
-# returns the thing itself.
-#
-# Scope is an explicit host list, not *.github.com: docs.github.com,
-# github.blog and *.github.io are ordinary pages that `gh` cannot serve and
-# must stay fetchable.
-#
-# Two entry points over one URL -> command mapping, because the same fetch
-# arrives by two routes: `script.WebFetch` guards the WebFetch tool,
-# `script.Bash` catches curl/wget aimed at the same hosts from Bash.
 {lib}: let
   hosts = [
     "github.com"
@@ -27,8 +12,6 @@
 
   scope = "Only ${lib.concatStringsSep ", " (lib.init hosts)} and ${lib.last hosts} are covered: docs.github.com, github.blog and *.github.io are ordinary pages and stay fetchable.";
 
-  # Every branch degrades to a `gh api` path, which can serve any
-  # REST-reachable URL, so an unrecognised shape still yields a usable command.
   mapper = ''
     github_cli_host() {
       case $1 in

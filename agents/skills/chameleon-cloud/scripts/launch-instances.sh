@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Launch bare metal instances in batches of 2 (Chameleon Cloud concurrency limit)
-# Usage: launch-instances.sh <lease-name> <image> <keypair> <count>
 set -euo pipefail
 
 CHI="$(cd "$(dirname "$0")" && pwd)/chi.sh"
@@ -9,6 +7,7 @@ LEASE_NAME="${1:?Usage: $0 <lease-name> <image> <keypair> <count>}"
 IMAGE="${2:?Missing image (e.g. CC-Ubuntu24.04)}"
 KEYPAIR="${3:?Missing keypair name}"
 COUNT="${4:?Missing instance count}"
+# Chameleon Cloud concurrency limit.
 BATCH_SIZE=2
 POLL_INTERVAL=60
 

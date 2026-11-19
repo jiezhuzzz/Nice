@@ -8,8 +8,7 @@
         zfsSupport = pkgs.stdenv.hostPlatform.isLinux;
       };
       settings = {
-        # Default module list with zpool added: on ZFS, per-mountpoint disk
-        # stats only cover a single dataset, so pool usage is invisible.
+        # On ZFS, per-mountpoint disk stats cover only a single dataset.
         modules = [
           "title"
           "separator"

@@ -17,10 +17,6 @@
                   manipulators = [
                     {
                       type = "basic";
-                      # Applies to the built-in keyboard, the Lofree Flow2 (which
-                      # exposes no usable vendor/product id over Bluetooth LE), and
-                      # any other standard-layout keyboard. The HHKB is excluded
-                      # because it has its own left_control rule below.
                       conditions = [
                         {
                           type = "device_unless";
@@ -95,10 +91,8 @@
                 ignore = false;
               }
               {
-                # Lofree Flow2 over Bluetooth LE — identified by its BLE address
-                # (no usable vendor/product id in that mode). Treated as built-in
-                # so the caps_lock rule above (device_unless vendor_id 1278)
-                # applies.
+                # Lofree Flow2 over Bluetooth LE exposes no usable vendor/product
+                # id, so it is matched by address.
                 identifiers = {
                   device_address = "c8-01-29-28-fe-5e";
                   is_keyboard = true;
@@ -108,10 +102,8 @@
                 treat_as_built_in_keyboard = true;
               }
               {
-                # Same Lofree Flow2 in wired mode. Over USB it does report ids,
-                # and no device_address, so the BLE entry above never matches.
-                # It also splits into two HID interfaces; this composite
-                # keyboard+pointing one is ignored by default.
+                # Lofree Flow2 wired: Karabiner ignores this composite
+                # keyboard+pointing HID interface by default.
                 identifiers = {
                   vendor_id = 14477;
                   product_id = 40;

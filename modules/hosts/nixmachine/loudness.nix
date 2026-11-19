@@ -1,25 +1,10 @@
-# A console-style "Loudness" output that compresses dynamic range and lifts
-# average loudness toward the ceiling — so games/media over HDMI feel as loud
-# as an Apple TV / Switch at the same TV volume, instead of quiet with wide
-# dynamics.
 {
   den.aspects.nixmachine.loudness.nixos = {pkgs, ...}: {
     services.pipewire = {
-      # CAPS provides the CompressX2 LADSPA plugin used by the filter-chain below.
       # NixOS pins PipeWire's LADSPA_PATH to a curated buildEnv, so plugins must be
-      # added here (a raw file path is NOT searched) — then referenced by name.
+      # added here (a raw file path is NOT searched).
       extraLadspaPackages = [pkgs.caps];
 
-      # A "Loudness" virtual sink: CAPS CompressX2 (stereo compressor + saturating
-      # limiter) → the HDMI/LG-TV output. Play into this sink (make it the default,
-      # or pick it per-app) to get the console-style loudness. It's a saturating
-      # limiter, so it lifts loudness without hard-clipping.
-      #
-      # Tune to taste (all 0..1 unless noted):
-      #   threshold ↓  and/or  strength ↑   → more compression (denser, louder)
-      #   "gain (dB)" ↑ (-12..36)           → more makeup gain (raw loudness boost)
-      #   attack / release                  → how fast it reacts
-      # target.object pins the processed output to this box's HDMI node.
       extraConfig.pipewire."99-loudness" = {
         "context.modules" = [
           {

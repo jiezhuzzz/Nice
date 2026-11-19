@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Attach the site's floating IP to the first instance of a lease
-# Usage: attach-floating-ips.sh <lease-name>
 set -euo pipefail
 
 CHI="$(cd "$(dirname "$0")" && pwd)/chi.sh"

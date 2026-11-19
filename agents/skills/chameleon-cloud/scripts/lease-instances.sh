@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# List the instances (servers) that belong to a lease
-# by mapping lease -> host reservations -> Blazar hosts -> hypervisors -> servers,
-# since instance names do not encode the lease.
-#
-# Usage: lease-instances.sh <lease-name>
 set -euo pipefail
 
 CHI="$(cd "$(dirname "$0")" && pwd)/chi.sh"
@@ -21,6 +16,7 @@ alloc=$("$CHI" blazar allocation-list host -f json)
 hosts=$("$CHI" blazar host-list -f json)
 servers=$("$CHI" openstack server list --long -n -f json)
 
+# Instance names do not encode the lease.
 # `any(. == x)` (not `index`) avoids jq treating list index 0 as falsy.
 # In `openstack server list --long`, .Host is the hypervisor_hostname.
 result=$(jq -n \

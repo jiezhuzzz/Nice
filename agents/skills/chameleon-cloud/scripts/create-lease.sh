@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Create a physical:host lease starting now and wait until it is ACTIVE
-# Usage: create-lease.sh <name> <node-type> <count> <end-date>
-# Example: create-lease.sh my-lease compute_skylake 2 "2026-03-15 00:00"
 set -euo pipefail
 
 CHI="$(cd "$(dirname "$0")" && pwd)/chi.sh"

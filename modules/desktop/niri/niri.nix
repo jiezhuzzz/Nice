@@ -23,23 +23,9 @@
         exec ${noctalia} msg session lock-and-suspend
       '';
     in {
-      # niri is enabled system-side by the nixos half above, which uses
-      # the nixpkgs module (programs.niri.enable). That module offers enable,
-      # package and useNautilus only — it has no config generator — so the
-      # compositor config is hand-maintained KDL in ./config.kdl.
-      #
       # home-manager's wayland.windowManager.niri is deliberately unused: it also
       # installs the niri package, its systemd user units and a portal, all of
-      # which the NixOS side already provides. Only its build-time
-      # `niri validate` check is borrowed, as the postCheck below.
-      #
-      # This module previously used niri-flake's `programs.niri.settings`, which
-      # generated the KDL from typed Nix. Dropping that input removed four
-      # transitive lock entries and a version skew: niri-flake's home-manager
-      # module defaulted to niri 25.08 while the system actually runs the nixpkgs
-      # niri (26.04 at the time of the change).
-      #
-      # replaceVarsWith fails the build if a placeholder goes stale.
+      # which the NixOS side already provides.
       xdg.configFile."niri/config.kdl".source = pkgs.replaceVarsWith {
         src = ./config.kdl;
         replacements = {
@@ -55,8 +41,8 @@
       };
 
       home.packages = with pkgs; [
-        brightnessctl # CLI backlight control; the keys go through noctalia now
-        wl-clipboard # wl-copy/wl-paste; no CLI equivalent in noctalia's clipboard panel
+        brightnessctl
+        wl-clipboard
       ];
     };
   };

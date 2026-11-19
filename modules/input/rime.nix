@@ -13,11 +13,10 @@
     home.file."${rimeDir}/default.custom.yaml".text = builtins.toJSON {
       patch = {
         # nixpkgs renames rime-ice's default.yaml to avoid colliding with the
-        # frontend's base data. Include it before applying local overrides.
+        # frontend's base data.
         __include = "rime_ice_suggestion:/";
         schema_list = [{schema = "double_pinyin_flypy";}];
-        # Only left Shift toggles EN/中; right Shift is inert. The default
-        # binds both Shift keys — this replaces the whole switch_key map.
+        # Replaces the whole default switch_key map, not just the Shift keys.
         "ascii_composer/switch_key" = {
           Shift_L = "inline_ascii";
           Shift_R = "noop";
@@ -29,8 +28,6 @@
     };
 
     # rime-ice's secondary translators default to full-pinyin spelling rules.
-    # Apply its Xiaohe-specific rule sets so English and radical lookup behave
-    # consistently with the selected schema.
     home.file."${rimeDir}/melt_eng.custom.yaml".text = builtins.toJSON {
       patch."speller/algebra".__include = "melt_eng.schema.yaml:/algebra_double_pinyin_flypy";
     };
@@ -54,13 +51,9 @@
     };
 
     # Rime's deployer only recompiles when a source file is newer than the
-    # compiled output in build/. Our source data is symlinked from the Nix
-    # store, where every file has a fixed 1970 mtime, so Rime always thinks
-    # nothing changed and serves a stale build/ — config edits appear to do
-    # nothing until build/ is wiped. Clear it on every activation, then kick a
-    # redeploy so the new config takes effect without manual steps. A running
-    # fcitx5 keeps serving Rime without build/ until it restarts, so restart its
-    # XDG-autostart unit; try-restart leaves it alone when no session runs it.
+    # compiled output in build/, and Nix store files have a fixed 1970 mtime,
+    # so build/ goes stale. A running fcitx5 keeps serving Rime without build/
+    # until it restarts.
     home.activation.rimeRedeploy = lib.hm.dag.entryAfter ["writeBoundary"] (
       ''
         run rm -rf $VERBOSE_ARG "$HOME/${rimeDir}/build"

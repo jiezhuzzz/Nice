@@ -1,4 +1,3 @@
-"""Idempotent hardlink creation. Never overwrites; never touches the source."""
 from __future__ import annotations
 
 import os
@@ -10,8 +9,6 @@ class LinkConflict(Exception):
 
 
 def hardlink(src: Path, dest: Path) -> str:
-    """Return 'linked' if created, 'exists' if already the same file.
-    Raise LinkConflict if dest exists with different content."""
     if dest.exists():
         if dest.samefile(src):
             return "exists"

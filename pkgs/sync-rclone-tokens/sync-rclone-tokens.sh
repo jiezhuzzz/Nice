@@ -1,25 +1,10 @@
 #!/usr/bin/env bash
-# Sync rclone OAuth tokens to standalone home-manager nodes: goku and vegeta by
-# default, and Chameleon nodes through the chameleon-cloud skill's
-# setup-instance.sh.
-#
-# Those Linux hosts have no system-level agenix, so the rclone home-manager
-# module (modules/system/rclone.nix) reads the GDrive/Box tokens
-# from ~/.local/share/rclone/{gdrive,box}-token instead of /run/agenix. This
-# copies the tokens that agenix has already decrypted on THIS machine (the
-# operator, e.g. a Mac that is a secrets recipient) to each node.
-#
-# Run this BEFORE the first `home-manager switch --flake ...#<output>` on a node:
-# if the tokens are missing at activation, rclone-config.service fails and the
+# Run this BEFORE the first `home-manager switch` on a node: if the tokens are
+# missing at activation, rclone-config.service fails and the
 # rclone-mount:@{gdrive,box}.service units never start. Recovery after dropping
 # them in:
 #   systemctl --user start rclone-config.service
 #   systemctl --user start 'rclone-mount:@gdrive.service' 'rclone-mount:@box.service'
-#
-# Usage: nix run .#sync-rclone-tokens -- [host ...]   (defaults to: goku vegeta)
-# Hosts must be reachable via your ssh config — goku/vegeta route through the
-# `uchicago` ProxyJump as user jiezzz (modules/ssh/ssh-identities.nix), so
-# apply that config (darwin-rebuild/nixos-rebuild switch) on this machine first.
 set -euo pipefail
 
 HOSTS=("$@")

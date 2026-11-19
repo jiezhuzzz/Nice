@@ -1,8 +1,3 @@
-# Load the agenix-decrypted key set into the SSH agent at login (launchd on
-# macOS, systemd on Linux). Desktop-only: headless boxes reach the same keys
-# through the file pinning in ssh-identities.nix, and have no login session to
-# hang an agent off.
-#
 # On Linux the agent is gcr-ssh-agent, which nothing in this flake enables
 # directly: its default follows services.gnome.gnome-keyring.enable, which
 # nixpkgs' programs.niri turns on.

@@ -9,7 +9,6 @@
 
   scope = types.enum ["personal" "homelab"];
 
-  # Editing and recovery key, held in the password manager.
   password-manager = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIkFCNadE6kTViKssYg8SBEHf9H0BEa92p3l0UfMELOF";
 
   hosts = lib.attrValues (lib.mergeAttrsList (lib.attrValues den.hosts));

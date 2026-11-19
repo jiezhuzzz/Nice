@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Chameleon Cloud CLI wrapper, authenticated through ccauth's OIDC device flow
-# Usage: CHI_SITE=uc|tacc chi.sh <login|logout|blazar|openstack|cc-login> [args...]
 set -euo pipefail
 
 CHI_SITE="${CHI_SITE:-uc}"

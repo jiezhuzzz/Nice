@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Summarize Chameleon Cloud host availability per node type
-# Usage: check-availability.sh
 set -euo pipefail
 
 CHI="$(cd "$(dirname "$0")" && pwd)/chi.sh"

@@ -5,7 +5,6 @@ from media_filer.agent import classify, AgentResult
 
 def fake_runner_returning(payload):
     def _run(argv, timeout):
-        # sanity: the release name must reach the CLI
         assert any("MyShow" in a for a in argv)
         return payload
     return _run
@@ -43,7 +42,7 @@ def test_unknown_type_is_not_confident():
     payload = json.dumps({"type": "unknown", "title": None, "year": None,
                           "season": None, "episode": None, "confident": True})
     r = classify("MyShow", ["MyShow.mkv"], runner=fake_runner_returning(payload))
-    assert r.confident is False  # type unknown overrides claimed confidence
+    assert r.confident is False
 
 
 def test_forbids_all_mutating_and_task_tools():

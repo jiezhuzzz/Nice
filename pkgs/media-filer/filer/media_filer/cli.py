@@ -1,4 +1,3 @@
-"""Entry point: drain a queue directory of .job files."""
 from __future__ import annotations
 
 import logging

@@ -1,5 +1,3 @@
-# SSH client config — base settings shared by all hosts.
-# Hosts with agenix-decrypted keys also pin identity files (ssh-identities.nix).
 {nice, ...}: {
   den.aspects.ssh.homeManager = {
     programs.ssh = {
@@ -21,18 +19,15 @@
         HostName = "github.com";
         User = "git";
       };
-      # The homelab forge (modules/homelab/forgejo/forge.nix). A separate
-      # port because git is served by Forgejo's own SSH server rather than the
-      # host's sshd — without it the short `git.jiezhu.me:jie/repo` form would
-      # hit :22 and land on nixmachine's shell account. Identity pinning lives in
-      # ssh-identities.nix.
+      # Forgejo runs its own SSH server; without the port, the short
+      # `git.jiezhu.me:jie/repo` form would hit :22 and land on nixmachine's shell
+      # account.
       settings.${nice.facts.forge.host} = {
         User = "git";
         Port = nice.facts.forge.sshPort;
       };
-      # Chameleon (user `cc`) is the ONLY place we forward the agent: you hop
-      # from the tacc gateway onto reserved bare-metal nodes (10.52.*.*) and use
-      # your keys there. No other host forwards — see ssh-identities.nix for why.
+      # Only Chameleon forwards the agent: forwarding elsewhere leaves a stale
+      # $SSH_AUTH_SOCK when the session drops, which then hangs github auth.
       settings."tacc 129.114.108.129" = {
         HostName = "129.114.108.129";
         User = "cc";
@@ -43,11 +38,9 @@
         ProxyJump = "tacc";
         ForwardAgent = true;
       };
-      # The CHI@UC half of the same setup. Like tacc, the alias carries the bare
-      # IP too, so `ssh cc@<floating-ip>` picks up the identity instead of falling
-      # through to `Host *`. Both are the project's floating IP, reattached to
-      # whichever node is the current bastion — change them together if the
-      # project gets a new one.
+      # The alias carries the bare floating IP so `ssh cc@<floating-ip>` matches
+      # too. It is reattached to whichever node is the current bastion; change
+      # both copies together if the project gets a new one.
       settings."uc 192.5.87.20" = {
         HostName = "192.5.87.20";
         User = "cc";

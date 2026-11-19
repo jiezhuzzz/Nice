@@ -1,14 +1,4 @@
-# Glance — lightweight self-hosted dashboard for the homelab. A single "glanceable"
-# landing page: news feeds (Hacker News, Lobsters, RSS) plus a monitor
-# widget that health-checks and links to the other web UIs on this box.
-# Native NixOS service; binds 0.0.0.0 with openFirewall (any-source — the box
-# is NAT'd (v4) and ULA-only (v6) and the tailnet interface is trusted).
-# Reachable at https://glance.jiezhu.me over the tailnet, or
-# http://nixmachine.local:8083 on the LAN. Feeds are plain data — edit freely.
-#
-# The air-quality widget (custom-api) hits the WAQI API; its free token is an
-# agenix secret (secrets/glance/waqi-token.age → WAQI_TOKEN), fed to the service
-# via EnvironmentFile and referenced as ${WAQI_TOKEN} in the widget URL.
+# SAFETY: openFirewall is any-source; the box is NAT'd (v4) and ULA-only (v6).
 {
   den.aspects.homelab.glance.nixos = {config, ...}: {
     nice.web.services.glance = {
@@ -20,7 +10,6 @@
     services.glance = {
       enable = true;
       openFirewall = true;
-      # WAQI_TOKEN for the air-quality widget, via the module's EnvironmentFile.
       environmentFile = config.age.secrets.waqi-token.path;
       settings = {
         server = {
@@ -42,9 +31,6 @@
                     "hour-format" = "24h";
                   }
                   {
-                    # Air quality via the WAQI API (community custom-api widget:
-                    # github.com/glanceapp/community-widgets .../air-quality).
-                    # geo: coords are Chicago, matching the weather widget above.
                     type = "custom-api";
                     title = "Air Quality";
                     cache = "10m";
@@ -134,11 +120,6 @@
                     type = "monitor";
                     title = "Services";
                     cache = "1m";
-                    # `url` is what the tile links to, `check-url` is what glance
-                    # actually probes. Link to the caddy names so a tile opens the
-                    # same way the dashboard itself was reached, but probe
-                    # localhost: glance runs on this box, so the check needs no
-                    # DNS, no tailnet and no TLS handshake.
                     sites =
                       map (svc: {
                         inherit (svc.tile) title icon;

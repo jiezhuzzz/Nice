@@ -1,4 +1,3 @@
-# Machinery and rationale live in _lib.nix.
 {
   den.aspects.claude-code.hooks.homeManager = {
     lib,
@@ -16,8 +15,7 @@
 
     matchers = lib.unique (lib.concatMap (guard: lib.attrNames guard.script) guards);
 
-    # Guards that share a matcher ride one binary, so the payload is read and
-    # jq-parsed once per call. `deny` exits, so the first matching guard wins.
+    # `deny` exits, so the first matching guard in `guards` wins.
     hookFor = matcher: let
       members = lib.filter (guard: guard.script ? ${matcher}) guards;
       name = "claude-${lib.toLower (lib.replaceStrings ["|"] ["-"] matcher)}-guard";

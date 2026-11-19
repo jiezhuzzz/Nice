@@ -14,7 +14,7 @@
     };
 
     xdg.configFile."blesh/init.sh".text = ''
-      # Force truecolor — Ghostty supports it but COLORTERM isn't always set
+      # Ghostty supports truecolor but does not always set COLORTERM.
       bleopt term_true_colors=semicolon
 
       ble-face -s syntax_default           'fg=${c.text}'

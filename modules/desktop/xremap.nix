@@ -6,17 +6,14 @@
   };
 
   den.aspects.desktop.xremap = {
-    # xremap runs as a Home Manager user service. It reads physical keyboards
-    # through /dev/input and emits its virtual keyboard through /dev/uinput.
     nixos.hardware.uinput.enable = true;
     user.extraGroups = ["input" "uinput"];
 
     homeManager = {
       imports = [inputs.xremap-flake.homeManagerModules.default];
 
-      # One user-level remapper owns all keyboard transformations. The first
-      # matching xremap rule wins, so the browser-specific Alt rule must precede
-      # the global macOS-style modifier swap.
+      # The first matching xremap rule wins, so the Helium rule must precede
+      # the global modifier swap.
       services.xremap = {
         enable = true;
         withNiri = true;
@@ -24,9 +21,7 @@
         config.modmap = [
           {
             name = "Helium Command key";
-            # Matched against the Wayland app_id. Helium ships no StartupWMClass,
-            # so this is Chromium's default (the binary name); confirm with
-            # `niri msg windows` if the remap stops applying after an update.
+            # Helium ships no StartupWMClass, so its app_id is the binary name.
             application.only = ["/(?i)helium/"];
             remap = {
               Alt_L = "Control_L";
@@ -68,8 +63,7 @@
         ];
       };
 
-      # Niri publishes NIRI_SOCKET before graphical-session.target becomes active;
-      # the explicit dependency also documents the application-filter requirement.
+      # The application filter needs niri's IPC socket.
       systemd.user.services.xremap.Unit.After = ["niri.service"];
     };
   };

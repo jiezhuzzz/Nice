@@ -15,7 +15,7 @@ def test_drain_processes_and_deletes_jobs(tmp_path, monkeypatch):
     cli.main([str(queue)])
 
     assert seen and seen[0]["TR_TORRENT_NAME"] == "Movie.2020"
-    assert not job.exists()  # job removed after handling
+    assert not job.exists()
 
 
 def test_bad_job_is_removed_not_fatal(tmp_path, monkeypatch):
@@ -27,5 +27,5 @@ def test_bad_job_is_removed_not_fatal(tmp_path, monkeypatch):
         raise RuntimeError("kaboom")
 
     monkeypatch.setattr(cli.filer, "process_job", boom)
-    cli.main([str(queue)])  # must not raise
+    cli.main([str(queue)])
     assert not (queue / "bad.job").exists()

@@ -1,9 +1,3 @@
-# Declarative Homebrew for nix-darwin.
-#
-# Two layers:
-#   - nix-homebrew (zhaofengli/nix-homebrew) installs Homebrew itself and
-#     pins taps to flake inputs (no mutable taps, no network at activation).
-#   - nix-darwin's `homebrew` module manages which casks are installed.
 {inputs, ...}: {
   flake-file.inputs = {
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
@@ -26,10 +20,10 @@
 
     nix-homebrew = {
       enable = true;
-      enableRosetta = false; # Apple Silicon only, no Intel layer
+      enableRosetta = false;
       user = config.system.primaryUser;
-      autoMigrate = false; # refuse if a non-nix brew install is already present
-      mutableTaps = false; # taps come from flake inputs, not `brew tap`
+      autoMigrate = false;
+      mutableTaps = false;
       taps = {
         "homebrew/homebrew-core" = inputs.homebrew-core;
         "homebrew/homebrew-cask" = inputs.homebrew-cask;
@@ -39,9 +33,9 @@
     homebrew = {
       enable = true;
       onActivation = {
-        autoUpdate = false; # don't hit network on every darwin-rebuild
+        autoUpdate = false;
         upgrade = true;
-        cleanup = "zap"; # remove anything not declared here
+        cleanup = "zap";
       };
       taps = builtins.attrNames config.nix-homebrew.taps;
       casks = [

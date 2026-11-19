@@ -1,4 +1,3 @@
-"""Compute Jellyfin-standard library destinations and clamp them to the root."""
 from __future__ import annotations
 
 import os
@@ -12,8 +11,6 @@ _HOSTILE = re.compile(r'[\\/:*?"<>|]')
 
 def sanitize(name: str) -> str:
     cleaned = _HOSTILE.sub("", name).strip()
-    # `is_inside` is the real backstop, but a path component of "." or ".."
-    # (or empty) should never become a directory name.
     if cleaned in ("", ".", ".."):
         return "_"
     return cleaned
@@ -36,7 +33,6 @@ def anime_absolute_dest(root: Path, title: str, number: int, ext: str) -> Path:
 
 
 def is_inside(dest: Path, root: Path) -> bool:
-    """Guard against `..`/symlink escapes: the resolved dest must live under root."""
     r = root.resolve()
     d = dest.resolve()
     return d == r or r in d.parents

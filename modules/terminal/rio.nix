@@ -25,7 +25,6 @@
             }
           ];
         };
-        # CSS shorthand: [vertical horizontal].
         margin = [8 8];
         cursor.shape = "block";
         copy-on-select = true;
@@ -44,13 +43,8 @@
               blur = false;
             }
           );
-        # Make alt+backspace send the classic "meta-DEL" byte pair — ESC
-        # (\x1b) then DEL (\x7f) — which readline, fish, zsh and pi's editor
-        # all read as delete-word-backward. Recommended by pi's terminal-setup
-        # docs (libexec/pi/docs/terminal-setup.md); Rio's own default for this
-        # chord drops out once a program turns on the Kitty keyboard protocol.
-        #
-        # Nix has no \x escape, so the two bytes come in through JSON.
+        # Rio's own alt+backspace default drops out once a program turns on the
+        # Kitty keyboard protocol (libexec/pi/docs/terminal-setup.md).
         bindings.keys =
           [
             {

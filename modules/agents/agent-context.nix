@@ -1,5 +1,3 @@
-# Soft guidance for the coding agents: one text, so they share one set of
-# policies.
 {lib, ...}: let
   python = ''
     # Python

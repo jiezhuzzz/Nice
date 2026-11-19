@@ -9,8 +9,6 @@ from media_filer.hardlink import LinkConflict
 
 @pytest.fixture(autouse=True)
 def _low_threshold(monkeypatch):
-    # Production threshold is 100MB; shrink it so tests use tiny files instead
-    # of writing hundreds of MB to tmp.
     monkeypatch.setattr(filer, "MIN_VIDEO_BYTES", 100)
 
 
@@ -31,8 +29,8 @@ def test_movie_deterministic(tmp_path):
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "The.Matrix.1999.1080p.BluRay.x264-GRP"
-    _mk(src / "the.matrix.1999.1080p.mkv", 8192)   # feature (largest)
-    _mk(src / "the.matrix.1999.sample.mkv", 4096)  # sample by name -> ignored
+    _mk(src / "the.matrix.1999.1080p.mkv", 8192)
+    _mk(src / "the.matrix.1999.sample.mkv", 4096)
     results = filer.process_job(_job(dl, src.name), root=root, classify=never_agent)
     dest = root / "movies" / "The Matrix (1999)" / "The Matrix (1999).mkv"
     assert dest.exists()
@@ -43,8 +41,8 @@ def test_small_sample_excluded_by_size(tmp_path):
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "The.Matrix.1999.1080p.BluRay-GRP"
-    _mk(src / "the.matrix.1999.mkv", 8192)  # real feature
-    _mk(src / "junk.mkv", 10)               # below threshold -> ignored
+    _mk(src / "the.matrix.1999.mkv", 8192)
+    _mk(src / "junk.mkv", 10)
     filer.process_job(_job(dl, src.name), root=root, classify=never_agent)
     assert (root / "movies" / "The Matrix (1999)" / "The Matrix (1999).mkv").exists()
 
@@ -102,14 +100,12 @@ def test_no_video_files_unfiled(tmp_path):
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "Some.Artist.Discography.FLAC"
-    _mk(src / "01.track.flac")  # not a video extension
+    _mk(src / "01.track.flac")
     results = filer.process_job(_job(dl, src.name), root=root, classify=never_agent)
     assert results and all(r.action == "unfiled" for r in results)
 
 
 def test_excluded_download_dir_skipped(tmp_path, monkeypatch):
-    # A torrent that landed in the excluded downloads dir is left alone, even
-    # though its name would otherwise file confidently as a movie.
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     xxx = dl / "xxx"
@@ -118,11 +114,10 @@ def test_excluded_download_dir_skipped(tmp_path, monkeypatch):
     _mk(src / "the.matrix.1999.1080p.mkv", 8192)
     results = filer.process_job(_job(xxx, src.name), root=root, classify=never_agent)
     assert results and all(r.action == "skipped" for r in results)
-    assert not list(root.rglob("*.mkv"))  # nothing hardlinked into the library
+    assert not list(root.rglob("*.mkv"))
 
 
 def test_excluded_download_subdir_skipped(tmp_path, monkeypatch):
-    # Descendants of an excluded dir are excluded too (e.g. per-studio subfolders).
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     xxx = dl / "xxx"
@@ -136,8 +131,8 @@ def test_excluded_download_subdir_skipped(tmp_path, monkeypatch):
 
 
 def test_default_excludes_xxx_downloads(tmp_path):
-    # The shipped default keeps /tank/media/downloads/xxx out of the library and
-    # short-circuits before touching the filesystem (the src need not exist).
+    # The src need not exist: exclusion short-circuits before any filesystem
+    # access.
     root = tmp_path / "media"
     results = filer.process_job(
         _job("/tank/media/downloads/xxx", "Some.Movie.2020.1080p-GRP"),
@@ -147,7 +142,6 @@ def test_default_excludes_xxx_downloads(tmp_path):
 
 
 def test_anime_absolute_episode(tmp_path):
-    # agent resolves anime; file uses absolute numbering (no season) -> anime/Show/Show - N.ext
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "[SubsPlease] One Piece - 1071 (1080p)"
@@ -161,7 +155,6 @@ def test_anime_absolute_episode(tmp_path):
 
 
 def test_partial_unfiled_in_batch(tmp_path):
-    # one good episode links; a file with no episode number is left unfiled
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "Severance.S02.1080p.WEB-DL-GRP"
@@ -173,7 +166,6 @@ def test_partial_unfiled_in_batch(tmp_path):
 
 
 def test_link_conflict_reported(tmp_path):
-    # a LinkConflict from the linker surfaces as Result(action="conflict"), not a crash
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "The.Matrix.1999.1080p-GRP"
@@ -187,7 +179,6 @@ def test_link_conflict_reported(tmp_path):
 
 
 def test_movie_without_year_unfiled(tmp_path):
-    # a confident-movie decision with no year must NOT build a "Title (None)" path
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "Some.Mystery.Movie.1080p-GRP"
@@ -202,8 +193,6 @@ def test_movie_without_year_unfiled(tmp_path):
 
 
 def test_link_oserror_reported_not_crash(tmp_path):
-    # a real os.link failure (e.g. EPERM from protected_hardlinks) surfaces as
-    # Result(action="error") and never crashes the drain
     root = tmp_path / "media"
     dl = tmp_path / "dl"
     src = dl / "The.Matrix.1999.1080p-GRP"
@@ -251,10 +240,10 @@ def test_unmatched_subtitle_logged_not_linked(tmp_path):
     src = dl / "Severance.S02.1080p.WEB-DL-GRP"
     _mk(src / "Severance.S02E01.1080p.mkv")
     (src / "Subs").mkdir(parents=True, exist_ok=True)
-    _mk(src / "Subs" / "2_English.srt", 200)  # no episode marker -> ambiguous
+    _mk(src / "Subs" / "2_English.srt", 200)
     results = filer.process_job(_job(dl, src.name), root=root, classify=never_agent)
     assert (root / "tv" / "Severance" / "Season 02" / "Severance - S02E01.mkv").exists()
-    assert not list(root.rglob("*.srt"))  # ambiguous sub not linked
+    assert not list(root.rglob("*.srt"))
     assert any(r.action == "unfiled" and r.reason == "subtitle matched no episode" for r in results)
 
 
@@ -271,9 +260,8 @@ def test_hdsky_movie_skips_agent(tmp_path):
     dl = tmp_path / "dl"
     src = dl / "满江红.Full.River.Red.2023.2160p.WEB-DL.H265@HDSky"
     _mk(src / "满江红.Full.River.Red.2023.2160p.WEB-DL.H265@HDSky.mkv", 8192)
-    # End-to-end smoke test: an HDSky release files correctly without escalating.
-    # (guessit also parses these names, so this doesn't isolate the tracker path;
-    # the *_when_guessit_blind tests below do that.)
+    # guessit also parses these names, so this doesn't isolate the tracker path;
+    # the *_when_guessit_blind tests below do that.
     results = filer.process_job(_hdsky_job(dl, src.name), root=root, classify=never_agent)
     dest = root / "movies" / "Full River Red (2023)" / "Full River Red (2023).mkv"
     assert dest.exists()
@@ -286,9 +274,8 @@ def test_hdsky_season_pack_skips_agent(tmp_path):
     src = dl / "狂飙.The.Knockout.S01.2023.1080p.WEB-DL.H264.AAC@HDSky"
     _mk(src / "狂飙.The.Knockout.S01.E01.2023.1080p.WEB-DL.H264.AAC@HDSky.mkv")
     _mk(src / "狂飙.The.Knockout.S01.E02.2023.1080p.WEB-DL.H264.AAC@HDSky.mkv")
-    # End-to-end smoke test: an HDSky release files correctly without escalating.
-    # (guessit also parses these names, so this doesn't isolate the tracker path;
-    # the *_when_guessit_blind tests below do that.)
+    # guessit also parses these names, so this doesn't isolate the tracker path;
+    # the *_when_guessit_blind tests below do that.
     filer.process_job(_hdsky_job(dl, src.name), root=root, classify=never_agent)
     tv = root / "tv" / "The Knockout" / "Season 01"
     assert (tv / "The Knockout - S01E01.mkv").exists()
@@ -296,10 +283,8 @@ def test_hdsky_season_pack_skips_agent(tmp_path):
 
 
 def test_hdsky_movie_files_via_tracker_when_guessit_blind(tmp_path, monkeypatch):
-    # Prove the tracker path is actually used: blind guessit so parse_name returns
-    # a non-confident Candidate. Only trackers.release can then yield a confident
-    # decision -- if the tracker layer weren't wired in, this would escalate to
-    # never_agent and raise.
+    # With guessit blinded, only trackers.release can yield a confident
+    # decision; otherwise this escalates to never_agent and raises.
     monkeypatch.setattr(
         parse, "parse_name", lambda name: parse.Candidate(None, None, None, None, None)
     )
@@ -314,10 +299,8 @@ def test_hdsky_movie_files_via_tracker_when_guessit_blind(tmp_path, monkeypatch)
 
 
 def test_hdsky_season_pack_files_via_tracker_when_guessit_blind(tmp_path, monkeypatch):
-    # Isolate BOTH tracker branches: blind guessit so parse_name yields no
-    # season/episode. Only trackers.release (show + season) and trackers.file
-    # (per-episode numbers) can file these; if the _file_episode wiring were
-    # dropped, the episodes would have no number and be left unfiled.
+    # With guessit blinded, only trackers.release (show + season) and
+    # trackers.file (per-episode numbers) can file these.
     monkeypatch.setattr(
         parse, "parse_name", lambda name: parse.Candidate(None, None, None, None, None)
     )

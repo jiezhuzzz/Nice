@@ -17,8 +17,6 @@
       ];
     };
 
-    # Scale Zed and Rio for this machine's high-density display. The shared
-    # modules keep their defaults for every other host.
     provides.to-users.homeManager = {lib, ...}: {
       programs.zed-editor.userSettings = {
         buffer_font_size = lib.mkForce 18;

@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# Post-instance setup for Chameleon Cloud bare metal instances
-# Usage: setup-instance.sh <ip> [<ip2> ...]
-# Set SSH_JUMP=cc@<bastion-ip> to reach nodes via jump host
-# Set SSH_KEY=<path> to use a key other than the agenix-decrypted chameleon one
-# Set STEPS to a subset of "rclone terminfo apt userns linger nix" to run only those
-# Set NICE_FLAKE to take sync-rclone-tokens from a flake other than github:jiezhuzzz/nice
-# The rclone step reaches the node through your ssh config, so SSH_JUMP and SSH_KEY do not apply to it
 set -euo pipefail
 
 if [ $# -eq 0 ]; then
@@ -20,14 +13,14 @@ NICE_FLAKE="${NICE_FLAKE:-github:jiezhuzzz/nice}"
 SSH_OPTS=(-o StrictHostKeyChecking=accept-new -i "$SSH_KEY")
 if [ -n "${SSH_JUMP:-}" ]; then
   # OpenSSH does not pass -i through to a -J hop, so a non-default SSH_KEY
-  # authenticates against the target but not the bastion. Spelling the hop out
-  # as a ProxyCommand carries the same identity to both.
+  # would not reach the bastion.
   SSH_OPTS+=(-o "ProxyCommand=ssh -i $SSH_KEY -o StrictHostKeyChecking=accept-new -W %h:%p $SSH_JUMP")
 fi
 
 step_rclone() {
-  # sync-rclone-tokens connects without accept-new, so record the reinstalled
-  # node's host key first.
+  # sync-rclone-tokens connects through the ssh config, ignoring SSH_JUMP and
+  # SSH_KEY, and without accept-new, so record the reinstalled node's host key
+  # first.
   ssh "${SSH_OPTS[@]}" cc@"$1" true
   nix run "$NICE_FLAKE#sync-rclone-tokens" -- cc@"$1"
 }
@@ -46,8 +39,6 @@ step_userns() {
 }
 
 step_linger() {
-  # Enable systemd user lingering so the rclone mount and other user services
-  # start at boot rather than at next interactive login.
   ssh "${SSH_OPTS[@]}" cc@"$1" 'sudo loginctl enable-linger cc'
 }
 

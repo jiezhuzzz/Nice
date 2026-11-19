@@ -1,4 +1,3 @@
-"""Orchestrate one completed torrent into the library."""
 from __future__ import annotations
 
 import logging
@@ -15,19 +14,16 @@ log = logging.getLogger("media_filer")
 
 VIDEO_EXTS = {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".wmv"}
 _SAMPLE = re.compile(r"(?i)(^|[\W_])(sample|trailer|extras?)([\W_]|$)")
-MIN_VIDEO_BYTES = 100 * 1024 * 1024  # 100 MB — below this is treated as a sample
+MIN_VIDEO_BYTES = 100 * 1024 * 1024
 _LABEL_CATS = {"movie", "tv", "anime"}
 
-# Downloads routed into one of these dirs are intentionally kept out of the
-# Jellyfin library (e.g. adult content, which lives in its own place). A torrent
-# whose download dir is one of these — or a descendant — is skipped without
-# hardlinking. Route such torrents by setting their download location here.
+# Adult content lives outside the Jellyfin library.
 EXCLUDED_DOWNLOAD_DIRS = (layout.MEDIA_ROOT / "downloads" / "xxx",)
 
 
 @dataclass
 class Result:
-    action: str  # "linked" | "exists" | "unfiled" | "conflict" | "error" | "skipped"
+    action: str
     src: str
     dest: str | None
     reason: str | None = None
@@ -60,10 +56,6 @@ def _label_category(labels: str) -> str | None:
 
 
 def _compatible(label_cat: str | None, gtype: str | None) -> bool:
-    """A category label is compatible with guessit's structural type when it
-    does not contradict it: `movie` labels only fit movies; `tv`/`anime` labels
-    only fit episodes. Incompatible pairs escalate to the agent instead of
-    mis-filing."""
     if label_cat is None:
         return True
     if gtype == "movie":
@@ -74,13 +66,9 @@ def _compatible(label_cat: str | None, gtype: str | None) -> bool:
 
 
 def _resolve(name: str, files: list[Path], labels: str, tracker: str | None, classify) -> agent_mod.AgentResult | None:
-    """Decide (category, title, year, season, episode). Returns an AgentResult-shaped
-    decision, or None if we cannot confidently file it. Tries the tracker-specific
-    parser first (recognized trackers), then guessit, then the Claude agent."""
     label_cat = _label_category(labels)
 
-    # trackers.release returns None on a convention miss (so we fall back to
-    # guessit); a recognized tracker never returns a low-confidence guess.
+    # A recognized tracker never returns a low-confidence guess.
     c = trackers.release(tracker, name) if tracker else None
     if c is None:
         c = parse.parse_name(name)
@@ -89,12 +77,10 @@ def _resolve(name: str, files: list[Path], labels: str, tracker: str | None, cla
         category = label_cat or ("movie" if c.type == "movie" else "tv")
         return agent_mod.AgentResult(category, c.title, c.year, c.season, c.episode, True)
 
-    # Escalate: CJK, missing type, unresolved category, or a label that
-    # contradicts the parsed structure.
     decision = classify(name, [f.name for f in files])
     if not decision.confident:
         return None
-    if label_cat:  # an explicit label still wins on category
+    if label_cat:
         decision.type = label_cat
     return decision
 
@@ -140,8 +126,8 @@ def process_job(env: dict, *, root: Path = layout.MEDIA_ROOT,
         r = _place(feature, dest, root, link)
         results.append(r)
         if r.action in ("linked", "exists"):
-            results.extend(_place_subs(dest, all_subs, root, link))  # all subs -> the feature
-    else:  # tv | anime
+            results.extend(_place_subs(dest, all_subs, root, link))
+    else:
         anime = decision.type == "anime"
         matched: set[Path] = set()
         for f in files:
@@ -172,7 +158,6 @@ def process_job(env: dict, *, root: Path = layout.MEDIA_ROOT,
 
 
 def _place_subs(video_dest: Path, sub_list: list[Path], root: Path, link) -> list[Result]:
-    """Hardlink each subtitle next to the video, de-duplicating dest names."""
     out = []
     taken: set[Path] = set()
     for sub in sub_list:
@@ -192,9 +177,8 @@ def _place(src: Path, dest: Path, root: Path, link) -> Result:
         log.warning("conflict: %s", e)
         return Result("conflict", str(src), str(dest), str(e))
     except OSError as e:
-        # e.g. EPERM (protected_hardlinks on a non-group-writable source) or
-        # EXDEV (dest on a different dataset). Log cleanly instead of crashing
-        # the drain; the job is still consumed (a retry wouldn't help these).
+        # EPERM (protected_hardlinks) or EXDEV (dest on a different dataset)
+        # would fail again on retry, so the job is still consumed.
         log.error("error: could not link %s -> %s: %s", src.name, dest, e)
         return Result("error", str(src), str(dest), str(e))
     log.info("%s: %s -> %s", action, src.name, dest)
