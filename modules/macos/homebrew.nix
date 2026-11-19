@@ -61,7 +61,6 @@
         "squirrel-app"
         "stats"
         "tailscale-app"
-        "typeless"
         "zoom"
       ];
       masApps = {
