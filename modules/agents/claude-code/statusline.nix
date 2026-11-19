@@ -1,27 +1,11 @@
-# The ccstatusline status line: its generated settings.json and the
-# settings.statusLine key that points Claude Code at it.
 {
   den.aspects.claude-code.statusline.homeManager = {
     inputs',
     pkgs,
     ...
   }: let
-    # ccstatusline from llm-agents.nix (like claude-code itself in settings.nix).
     ccstatusline = inputs'.llm-agents.packages.ccstatusline;
 
-    # ccstatusline renders the status line from this JSON, replacing the
-    # hand-rolled shell script that used to live here — which forked jq nine
-    # times and git twice on every single render.
-    #
-    # The weekly widget reads `rate_limits.seven_day` straight out of the status
-    # payload, so the 7d number costs no API call. One thing is lost
-    # against the old script: ccstatusline has no value-driven colour, so nothing
-    # turns amber or red as the context fills.
-    #
-    # Plain text rather than powerline: Rio draws the window translucent with
-    # per-cell opacity, so the powerline caps and arrows never sat on the same
-    # background as the cells beside them. Foreground colours only, from the
-    # Nord palette (https://www.nordtheme.com/docs/colors-and-palettes).
     nord = {
       polarNight3 = "hex:4c566a";
       snowStorm0 = "hex:d8dee9";
@@ -38,8 +22,6 @@
 
     seg = id: type: color: extra: {inherit id type color;} // extra;
 
-    # ccstatusline drops a separator whose preceding widget rendered nothing, so
-    # the hidden branch and worktree segments leave no doubled bars behind.
     sep = id: {
       inherit id;
       type = "separator";
@@ -47,23 +29,26 @@
       color = nord.polarNight3;
     };
 
-    ccstatuslineSettings = {
+    # One config per login: ccstatusline fills a bucket missing from the payload
+    # from the usage API, which reports the other plan's window at 0%.
+    usage = {
+      session = seg "session" "session-usage" nord.orange {metadata.label = "5h: ";};
+      weekly = seg "weekly" "weekly-usage" nord.orange {metadata.label = "7d: ";};
+    };
+
+    mkSettings = usageWidget: {
       # Must equal ccstatusline's CURRENT_VERSION (2.2.29: 4). Anything lower is
       # migrated and written back — into the read-only store here, so the write
       # fails and every render falls back to defaults with "⚠ invalid config".
       version = 4;
-      colorLevel = 3; # truecolor
+      colorLevel = 3;
       defaultPadding = " ";
       defaultPaddingSide = "both";
-      # Longer than statusLine.refreshInterval below, or every timed re-render
-      # (which exists for the clock) would re-fork git.
+      # Must exceed statusLine.refreshInterval, or every timed re-render would
+      # re-fork git.
       gitCacheTtlSeconds = 30;
       lines = [
         [
-          # Model and effort read as one pair, no bar between. `merge` has to be
-          # the no-padding form: every widget is padded on both sides, so a plain
-          # merge would leave a double space — hence the explicit single space put
-          # back after it.
           (seg "model" "model" nord.frost1 {
             bold = true;
             rawValue = true;
@@ -87,12 +72,11 @@
             metadata.hide = "no-git";
           })
           (sep "sep-worktree")
-          # Renders nothing outside a linked worktree, so it costs no width there.
           (seg "worktree" "worktree-name" nord.frost0 {rawValue = true;})
           (sep "sep-ctx")
-          (seg "ctx" "context-percentage" nord.green {metadata.inverse = "true";}) # percent remaining, not consumed
-          (sep "sep-weekly")
-          (seg "weekly" "weekly-usage" nord.orange {metadata.label = "Usage: ";})
+          (seg "ctx" "context-percentage" nord.green {metadata.inverse = "true";})
+          (sep "sep-usage")
+          usageWidget
           (sep "sep-cost")
           (seg "cost" "session-cost" nord.red {
             bold = true;
@@ -103,27 +87,28 @@
         ]
       ];
     };
+
+    toJSON = name: (pkgs.formats.json {}).generate name;
+    enterpriseSettings = toJSON "ccstatusline-enterprise.json" (mkSettings usage.session);
+    personalSettings = toJSON "ccstatusline-settings.json" (mkSettings usage.weekly);
+
+    # `/login` swaps accounts inside the one config dir, so the account is only
+    # knowable at render time, from the oauthAccount that .claude.json records.
+    statusline = pkgs.writeShellScript "ccstatusline-by-account" ''
+      if ${pkgs.gnugrep}/bin/grep -qE '"organizationType": *"claude_enterprise"' "''${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json" 2>/dev/null; then
+        exec ${ccstatusline}/bin/ccstatusline --config ${enterpriseSettings}
+      fi
+      exec ${ccstatusline}/bin/ccstatusline --config ${personalSettings}
+    '';
   in {
-    # On PATH so `ccstatusline` opens its TUI. Editing there is read-only: the
-    # settings file below is a store symlink, so saves fail — it is a preview of
-    # what this module declares, not a way to change it.
     home.packages = [ccstatusline];
 
-    # ccstatusline reads ~/.config/ccstatusline/settings.json. Generating it keeps
-    # the status line declarative like everything else. A read-only store path is
-    # safe on the render path as long as `version` above is current: ccstatusline
-    # only writes back when migrating an older schema or when an `updatemessage`
-    # key is present, and its git/timer caches go to ~/.cache/ccstatusline
-    # regardless.
-    xdg.configFile."ccstatusline/settings.json".source =
-      (pkgs.formats.json {}).generate "ccstatusline-settings.json" ccstatuslineSettings;
+    xdg.configFile."ccstatusline/settings.json".source = personalSettings;
 
     programs.claude-code.settings.statusLine = {
       type = "command";
-      command = "${ccstatusline}/bin/ccstatusline";
+      command = "${statusline}";
       padding = 0;
-      # Re-render between turns so the session clock stays live. Claude Code
-      # honours this from 2.1.97 on.
       refreshInterval = 10;
     };
   };
