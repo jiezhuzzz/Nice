@@ -117,6 +117,7 @@ in {
           "${inputs.caveman}"
         ];
 
+        extensions = ["${./rewind-aborted-prompt.ts}"];
         skills = ["${inputs.superpowers}/skills/systematic-debugging"];
         themes = [piThemes];
         theme = "catppuccin-${config.catppuccin.flavor}";
