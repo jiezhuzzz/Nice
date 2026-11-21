@@ -18,6 +18,11 @@
         helix_mode = true;
         colorize_brackets = true;
         soft_wrap = "editor_width";
+        relative_line_numbers = "enabled";
+        inlay_hints.enabled = true;
+        sticky_scroll.enabled = true;
+        file_scan_exclusions = ["**/.direnv" "**/.ruff_cache" "**/__pycache__" "**/.pytest_cache" "**/.mypy_cache" "**/.venv" "**/node_modules" "..."];
+        lsp.nil.initialization_options.nix.flake.autoArchive = true;
         languages = {
           Nix = {
             language_servers = ["nil"];
@@ -41,7 +46,7 @@
             format_on_save = "on";
           };
           Python = {
-            language_servers = ["ruff" "ty" "!pyright"];
+            language_servers = ["ruff" "ty"];
             formatter = "language_server";
             format_on_save = "on";
           };
