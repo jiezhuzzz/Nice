@@ -35,6 +35,8 @@
       home.preferXdgDirectories = true;
       xdg.enable = true;
       home.sessionPath = ["${config.home.homeDirectory}/.local/bin"];
+      # SSH does not forward COLORTERM, and every terminal in use renders truecolor.
+      home.sessionVariables.COLORTERM = "truecolor";
       programs.man.generateCaches = false;
       programs.home-manager.enable = true;
     };
