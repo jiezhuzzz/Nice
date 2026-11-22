@@ -36,7 +36,7 @@
         # effortLevel in user settings only for a legacy model list ending at
         # opus-5/fable-5-1; newer models read modelSettings.<model> alone. Keys
         # are alias-resolved before matching, so `opus` follows each new Opus.
-        modelSettings.opus.effortLevel = "high";
+        modelSettings.opus.effortLevel = "xhigh";
         env = {
           CLAUDE_CODE_PLUGIN_CACHE_DIR = "${config.xdg.cacheHome}/claude/plugins";
           CLAUDE_CODE_DEBUG_LOGS_DIR = "${config.xdg.stateHome}/claude/logs";
