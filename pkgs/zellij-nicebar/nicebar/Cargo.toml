@@ -1,0 +1,16 @@
+[workspace]
+members = ["core", "plugin", "stats"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+nicebar-core = { path = "core" }
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = true
