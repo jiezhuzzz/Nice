@@ -89,5 +89,14 @@
         cleanupPeriodDays = 7;
       };
     };
+
+    # The status is a mod, not the `statusLine` setting: a `statusLine` command
+    # gets a row of its own above the permission-mode row, and Claude Code
+    # (2.1.327) has no setting that merges the two.
+    #
+    # Not `programs.claude-code.plugins`: that wraps a plugin in a directory of
+    # symlinks, and Claude Code refuses a hooks module that resolves to outside
+    # its plugin's directory.
+    home.file."${config.programs.claude-code.configDir}/skills/statusline".source = ./statusline;
   };
 }

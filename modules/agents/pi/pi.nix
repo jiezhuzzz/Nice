@@ -28,9 +28,8 @@ in {
     sessionDir = "${config.xdg.stateHome}/pi/sessions";
     cleanup = sessionCleanup pkgs;
 
-    # Nord colors and segment order follow claude-code/statusline.nix.
-    # `context` reports the window consumed where ccstatusline inverts it to what
-    # is left.
+    # Nord colors and segment order follow ../claude-code/statusline, the Claude
+    # Code status mod.
     sep = "[ │ ](polar_night_3)";
     piStarshipSettings = {
       palette = "nord";

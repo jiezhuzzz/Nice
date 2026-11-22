@@ -1,0 +1,10 @@
+{
+  "name": "statusline",
+  "description": "Draws the status segments (model, effort, directory, branch, context, usage, cost, clock) on Claude Code's built-in footer row, beside the permission mode, so the footer takes one row instead of two.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jie",
+    "email": "jiezzz@duck.com"
+  },
+  "license": "MIT"
+}
