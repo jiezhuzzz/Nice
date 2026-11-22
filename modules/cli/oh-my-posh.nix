@@ -10,13 +10,19 @@
         version = 4;
         final_space = true;
         palette = {
-          inherit (config.nice.theme.palette) pink lavender;
+          inherit (config.nice.theme.palette) pink lavender mauve;
         };
         blocks = [
           {
             type = "prompt";
             alignment = "left";
             segments = [
+              {
+                type = "text";
+                style = "plain";
+                foreground = "p:mauve";
+                template = "{{ with .Env.ZMX_SESSION }}{{ . }} {{ end }}";
+              }
               {
                 type = "path";
                 style = "plain";
