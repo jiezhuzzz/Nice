@@ -28,7 +28,43 @@
         skillOverrides = {
           claude-api = "user-invocable-only";
         };
-        permissions.defaultMode = "auto";
+        permissions = {
+          defaultMode = "auto";
+          allow = map (cmd: "Bash(gh ${cmd} *)") [
+            "api"
+            "repo view"
+            "repo list"
+            "pr view"
+            "pr list"
+            "pr diff"
+            "pr checks"
+            "pr status"
+            "issue view"
+            "issue list"
+            "issue status"
+            "run view"
+            "run list"
+            "workflow view"
+            "workflow list"
+            "release view"
+            "release list"
+            "label list"
+            "search"
+            "status"
+          ];
+          # `gh api` turns into a write once it is given a method, fields or an
+          # input body; denying those keeps the allow above read-only. No space
+          # after `api`, so a flag placed first (`gh api -X POST …`) matches too.
+          deny = map (flag: "Bash(gh api* ${flag}*)") [
+            "-X"
+            "--method"
+            "-f"
+            "-F"
+            "--field"
+            "--raw-field"
+            "--input"
+          ];
+        };
         skipDangerousModePermissionPrompt = true;
         # A setting rather than CLAUDE_CODE_EFFORT_LEVEL: the env var outranks
         # /effort, so it would block session-only changes (`s` in the slider).
