@@ -28,6 +28,7 @@
         margin = [8 8];
         cursor.shape = "block";
         copy-on-select = true;
+        navigation.mode = "Plain";
         window =
           {
             opacity-cells = true;
@@ -37,6 +38,7 @@
             then {
               opacity = 0.8;
               blur = "macos-glass-clear";
+              decorations = "Buttonless";
             }
             else {
               opacity = 0.5;
