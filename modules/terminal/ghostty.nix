@@ -1,5 +1,6 @@
 {
   den.aspects.ghostty.homeManager = {
+    config,
     pkgs,
     lib,
     ...
@@ -13,13 +14,15 @@
       settings =
         {
           font-family = [
-            "JetBrainsMono Nerd Font"
+            "JetBrainsMonoNL Nerd Font"
             "Noto Sans Mono CJK SC"
           ];
           font-size = 16;
           window-padding-x = 8;
           window-padding-y = 8;
-          cursor-style = "block";
+          cursor-style = "bar";
+          # cursor-style-blink = false;
+          adjust-cursor-thickness = "200%";
           copy-on-select = true;
           # pi otherwise doesn't see alt+backspace under Ghostty
           # (libexec/pi/docs/terminal-setup.md). Ghostty's `text:` action parses
@@ -36,7 +39,11 @@
               "super+n=new_window"
               "super+q=quit"
             ];
-          shell-integration-features = "ssh-terminfo";
+          command = "${lib.getExe config.programs.zellij.package} attach --create main";
+          # `detect` keys off the command basename, so launching zellij would
+          # skip injection into the fish panes it spawns.
+          shell-integration = "fish";
+          shell-integration-features = "cursor,sudo,ssh-env,ssh-terminfo,no-title,no-path";
           background-opacity-cells = true;
         }
         // (

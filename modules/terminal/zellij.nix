@@ -5,6 +5,7 @@
       settings = {
         show_startup_tips = false;
         show_release_notes = false;
+        default_layout = "compact";
         keybinds = {
           unbind = ["Ctrl b"];
         };
