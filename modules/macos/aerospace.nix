@@ -24,13 +24,6 @@
             ];
           }
           {
-            "if".app-id = "com.raphaelamorim.rio";
-            run = [
-              "layout tiling"
-              "move-node-to-workspace T"
-            ];
-          }
-          {
             "if".app-id = "net.imput.helium";
             run = "move-node-to-workspace B";
           }

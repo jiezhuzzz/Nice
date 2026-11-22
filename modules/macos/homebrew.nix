@@ -44,7 +44,6 @@
         "betterdisplay"
         "figma"
         "fuse-t"
-        "ghostty"
         "helium-browser"
         "iina"
         "karabiner-elements"

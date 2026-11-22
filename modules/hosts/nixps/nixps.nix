@@ -22,7 +22,7 @@
         buffer_font_size = lib.mkForce 18;
         ui_font_size = 20;
       };
-      programs.rio.settings.fonts.size = lib.mkForce 21;
+      programs.ghostty.settings.font-size = lib.mkForce 21;
     };
   };
 }

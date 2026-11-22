@@ -99,7 +99,7 @@ binds {
     Alt+3 { focus-workspace 3; }
     Alt+4 { focus-workspace 4; }
     Alt+B hotkey-overlay-title="Browser: helium" { spawn "helium"; }
-    Alt+T hotkey-overlay-title="Terminal: rio" { spawn "rio"; }
+    Alt+T hotkey-overlay-title="Terminal: ghostty" { spawn "ghostty"; }
     Alt+Down { focus-window-down; }
     Alt+H { focus-column-left; }
     Alt+J { focus-window-down; }

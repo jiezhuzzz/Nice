@@ -5,7 +5,6 @@
     zed
     rime
     ghostty
-    rio
     ssh-identities
     ssh-agent-keys
     git-signing
