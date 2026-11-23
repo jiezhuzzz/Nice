@@ -22,7 +22,6 @@
         buffer_font_size = lib.mkForce 18;
         ui_font_size = 20;
       };
-      programs.ghostty.settings.font-size = lib.mkForce 21;
     };
   };
 }
