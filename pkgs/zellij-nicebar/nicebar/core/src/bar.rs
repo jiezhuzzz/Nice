@@ -10,7 +10,7 @@ use crate::theme::{Rgb, Theme};
 
 const CAP_LEFT: &str = "\u{e0b6}";
 const CAP_RIGHT: &str = "\u{e0b4}";
-const HOST_SEPARATOR: &str = " ▸ ";
+const HOST_SEPARATOR: &str = " \u{f054} ";
 
 const FULLSCREEN_ICON: char = '\u{f0293}';
 const SYNC_ICON: char = '\u{f04e6}';
