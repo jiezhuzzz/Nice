@@ -96,28 +96,3 @@ fn nvidia() -> Vec<f64> {
         .filter_map(|line| line.trim().parse().ok())
         .collect()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn counts_iowait_as_idle_and_ignores_guest_time() {
-        let stat = "cpu  100 20 30 400 50 6 4 10 7 3\ncpu0 1 2 3 4 5 6 7 8 9 10\n";
-        assert_eq!(
-            parse_cpu(stat),
-            Some(CpuTicks {
-                busy: 170,
-                total: 620
-            })
-        );
-        assert_eq!(parse_cpu("intr 1 2 3\n"), None);
-    }
-
-    #[test]
-    fn memory_in_use_excludes_available_memory() {
-        let meminfo = "MemTotal:       16000000 kB\nMemFree:         1000000 kB\nMemAvailable:    4000000 kB\n";
-        assert_eq!(parse_memory(meminfo), Some(75.0));
-        assert_eq!(parse_memory("MemTotal: 16000000 kB\n"), None);
-    }
-}

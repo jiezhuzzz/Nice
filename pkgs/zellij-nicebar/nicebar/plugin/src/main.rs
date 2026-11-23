@@ -1,9 +1,14 @@
 use std::collections::BTreeMap;
 
-use nicebar_core::bar::{self, Bar, Rendered, Tab};
+use crate::mode::ModeView;
+use crate::remote::Remotes;
+use nicebar_core::bar::{self, Bar, Rendered, Tab, Target};
 use nicebar_core::sample::{Meter, Sample};
 use nicebar_core::theme::{Theme, ThemeError};
 use zellij_tile::prelude::*;
+
+mod mode;
+mod remote;
 
 const POLL_SECONDS: f64 = 2.0;
 const PRIMING_SECONDS: f64 = 0.5;
@@ -19,17 +24,25 @@ struct Nicebar {
     bars: BTreeMap<SlotId, BarSlot>,
     views: BTreeMap<ClientId, View>,
     meter: Meter,
+    remotes: Remotes,
     polling: bool,
 }
 
 struct BarSlot {
-    theme: Result<Theme, ThemeError>,
+    themes: Result<Themes, ThemeError>,
     stats_command: Option<String>,
+}
+
+struct Themes {
+    lit: Theme,
+    dimmed: Theme,
 }
 
 #[derive(Default)]
 struct View {
-    mode: InputMode,
+    mode: ModeView,
+    hosts: Vec<String>,
+    dimmed: bool,
     tabs: Vec<Tab>,
     rendered: Rendered,
 }
@@ -47,6 +60,7 @@ impl ZellijSharedPlugin for Nicebar {
             EventType::PermissionRequestResult,
             EventType::ModeUpdate,
             EventType::TabUpdate,
+            EventType::PaneUpdate,
             EventType::Mouse,
             EventType::Timer,
             EventType::RunCommandResult,
@@ -65,7 +79,10 @@ impl ZellijSharedPlugin for Nicebar {
         self.bars.insert(
             slot.id,
             BarSlot {
-                theme: Theme::from_config(&slot.configuration),
+                themes: Theme::from_config(&slot.configuration).map(|theme| Themes {
+                    dimmed: theme.dimmed(),
+                    lit: theme,
+                }),
                 stats_command: slot.configuration.get("stats").cloned(),
             },
         );
@@ -93,10 +110,18 @@ impl ZellijSharedPlugin for Nicebar {
                 RenderResponse::All
             }
             Event::ModeUpdate(info) => {
+                let mode = ModeView::of(&info);
+                let hosts = shown_hosts(&info);
+                let dimmed =
+                    info.session_ascended == Some(true) || info.session_dimmed == Some(true);
                 if info.session_name.is_some() {
                     self.session = info.session_name;
                 }
-                self.update_views(context.client_id, |view| view.mode = info.mode)
+                self.update_views(context.client_id, |view| {
+                    view.mode.clone_from(&mode);
+                    view.hosts.clone_from(&hosts);
+                    view.dimmed = dimmed;
+                })
             }
             Event::SessionUpdate(sessions, _) => {
                 unsubscribe(&[EventType::SessionUpdate]);
@@ -113,13 +138,16 @@ impl ZellijSharedPlugin for Nicebar {
                     view.tabs = tabs.iter().map(bar_tab).collect();
                 })
             }
+            Event::PaneUpdate(manifest) => self.remotes.update(&manifest),
             Event::Mouse(Mouse::LeftClick(_, column)) => {
-                let position = context
+                let target = context
                     .client_id
                     .and_then(|client_id| self.views.get(&client_id))
-                    .and_then(|view| view.rendered.tab_at(column));
-                if let Some(position) = position {
-                    switch_tab_to(position as u32 + 1);
+                    .and_then(|view| view.rendered.target_at(column));
+                match target {
+                    Some(Target::Tab(position)) => switch_tab_to(position as u32 + 1),
+                    Some(Target::Host) => focus_host_session(),
+                    None => {}
                 }
                 RenderResponse::Nothing
             }
@@ -140,20 +168,33 @@ impl ZellijSharedPlugin for Nicebar {
         let Some(slot) = self.bars.get(&slot_id) else {
             return;
         };
-        let theme = match (self.permission, &slot.theme) {
+        let themes = match (self.permission, &slot.themes) {
             (Some(PermissionStatus::Denied), _) => return notice("permissions denied", cols),
             (_, Err(error)) => return notice(&error.to_string(), cols),
-            (_, Ok(theme)) => theme,
+            (_, Ok(themes)) => themes,
         };
         let view = self.views.entry(client_id).or_default();
+        let tabs: Vec<Tab> = view
+            .tabs
+            .iter()
+            .map(|tab| Tab {
+                remote: self.remotes.host(tab),
+                ..tab.clone()
+            })
+            .collect();
         view.rendered = bar::render(
             &Bar {
-                mode: mode_label(view.mode),
+                mode: view.mode.shown(),
                 session: self.session.as_deref(),
-                tabs: &view.tabs,
+                hosts: &view.hosts,
+                tabs: &tabs,
                 usage: self.meter.usage(),
             },
-            theme,
+            if view.dimmed {
+                &themes.dimmed
+            } else {
+                &themes.lit
+            },
             cols,
         );
         print!("{}", view.rendered.line);
@@ -228,20 +269,13 @@ fn notice(problem: &str, cols: usize) {
     print!("{}", bar::clip(&format!(" nicebar: {problem}"), cols));
 }
 
-fn mode_label(mode: InputMode) -> &'static str {
-    match mode {
-        InputMode::Normal => "NORMAL",
-        InputMode::Locked => "LOCKED",
-        InputMode::Pane => "PANE",
-        InputMode::Tab => "TAB",
-        InputMode::Resize => "RESIZE",
-        InputMode::Move => "MOVE",
-        InputMode::Scroll => "SCROLL",
-        InputMode::EnterSearch | InputMode::Search => "SEARCH",
-        InputMode::RenameTab | InputMode::RenamePane | InputMode::RenameSession => "RENAME",
-        InputMode::Session => "SESSION",
-        InputMode::Prompt => "PROMPT",
-        InputMode::Tmux => "TMUX",
+/// Outside host fullscreen the host's own bar stays visible above this one and
+/// already names the host session.
+fn shown_hosts(info: &ModeInfo) -> Vec<String> {
+    if info.host_fullscreen == Some(true) {
+        info.session_ancestry.clone()
+    } else {
+        Vec::new()
     }
 }
 
@@ -253,5 +287,6 @@ fn bar_tab(info: &TabInfo) -> Tab {
         fullscreen: info.is_fullscreen_active,
         sync: info.is_sync_panes_active,
         floating: info.are_floating_panes_visible,
+        remote: None,
     }
 }

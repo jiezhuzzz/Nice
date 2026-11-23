@@ -1,4 +1,11 @@
 {
+  # Zellij tells a nested session only its hosts' session names, so naming each
+  # session after its machine is what lets nicebar show `nixmini ▸ nixmachine`.
+  den.aspects.zellij.includes = [
+    ({host, ...}: {homeManager.programs.zellij.settings.session_name = host.hostName;})
+    ({home, ...}: {homeManager.programs.zellij.settings.session_name = home.name;})
+  ];
+
   den.aspects.zellij.homeManager = {
     config,
     pkgs,
@@ -12,11 +19,10 @@
       stats = lib.getExe pkgs.nicebar-stats;
       inherit (palette) text;
       muted_text = palette.subtext0;
-      accent_text = palette.crust;
-      session_bg = palette.surface1;
-      tab_bg = palette.surface0;
-      tab_active_bg = palette.mauve;
-      stats_bg = palette.surface0;
+      faint_text = palette.overlay1;
+      ghost_text = palette.surface2;
+      accent = palette.mauve;
+      pill_bg = palette.crust;
       warn = palette.yellow;
       crit = palette.red;
       mode = palette.blue;
@@ -45,8 +51,23 @@
           RunCommands
       }
     '';
+
+    zellij = lib.getExe config.programs.zellij.package;
   in {
     xdg.configFile."zellij/plugins/nicebar.wasm".source = pkgs.zellij-nicebar;
+
+    # Zed's remote terminal is an ssh login shell too, told apart only by the
+    # ZED_TERM it exports (zed crates/terminal/src/terminal.rs).
+    programs.bash.initExtra = lib.mkBefore ''
+      if shopt -q login_shell && [[ -n $SSH_TTY && -z $ZELLIJ && -z $ZED_TERM ]]; then
+        exec ${zellij}
+      fi
+    '';
+    programs.fish.interactiveShellInit = lib.mkBefore ''
+      if status is-login; and set -q SSH_TTY; and not set -q ZELLIJ; and not set -q ZED_TERM
+          exec ${zellij}
+      end
+    '';
 
     programs.zellij = {
       enable = true;
@@ -70,6 +91,7 @@
         show_startup_tips = false;
         show_release_notes = false;
         default_layout = "nice";
+        attach_to_session = true;
         # Overrides zellij's built-in alias, so its own layouts get nicebar too.
         plugins.tab-bar = nicebar;
         keybinds = {

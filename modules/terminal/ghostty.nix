@@ -39,7 +39,7 @@
               "super+n=new_window"
               "super+q=quit"
             ];
-          command = "${lib.getExe config.programs.zellij.package} attach --create main";
+          command = lib.getExe config.programs.zellij.package;
           # `detect` keys off the command basename, so launching zellij would
           # skip injection into the fish panes it spawns.
           shell-integration = "fish";

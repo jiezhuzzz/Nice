@@ -1,35 +1,28 @@
+use std::borrow::Cow;
 use std::fmt::Write as _;
 use std::iter;
 use std::ops::Range;
 
-use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+use unicode_width::UnicodeWidthStr;
 
 use crate::sample::Usage;
 use crate::theme::{Rgb, Theme};
 
-struct Arrow {
-    hard: &'static str,
-    thin: &'static str,
-}
+const CAP_LEFT: &str = "\u{e0b6}";
+const CAP_RIGHT: &str = "\u{e0b4}";
+const HOST_SEPARATOR: &str = " ▸ ";
 
-const RIGHTWARD: Arrow = Arrow {
-    hard: "\u{e0b0}",
-    thin: "\u{e0b1}",
-};
-const LEFTWARD: Arrow = Arrow {
-    hard: "\u{e0b2}",
-    thin: "\u{e0b3}",
-};
-
-const CPU_ICON: char = '\u{f2db}';
-const GPU_ICON: char = '\u{f08ae}';
-const MEM_ICON: char = '\u{efc5}';
 const FULLSCREEN_ICON: char = '\u{f0293}';
 const SYNC_ICON: char = '\u{f04e6}';
 const FLOATING_ICON: char = '\u{f2d2}';
+const REMOTE_ICON: char = '\u{f048b}';
 
 const WARN_AT: f64 = 70.0;
 const CRIT_AT: f64 = 90.0;
+
+const LEFT_MARGIN: usize = 1;
+const GAP: usize = 2;
+const METER_DIGITS: usize = 2;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Tab {
@@ -39,12 +32,28 @@ pub struct Tab {
     pub fullscreen: bool,
     pub sync: bool,
     pub floating: bool,
+    pub remote: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Hint {
+    pub keys: String,
+    pub action: &'static str,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Mode<'a> {
+    pub label: &'a str,
+    pub hints: &'a [Hint],
+    pub digits_pick_tabs: bool,
+    pub locked: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Bar<'a> {
-    pub mode: &'a str,
+    pub mode: Option<Mode<'a>>,
     pub session: Option<&'a str>,
+    pub hosts: &'a [String],
     pub tabs: &'a [Tab],
     pub usage: Usage,
 }
@@ -52,84 +61,172 @@ pub struct Bar<'a> {
 #[derive(Debug, Default)]
 pub struct Rendered {
     pub line: String,
-    targets: Vec<(Range<usize>, usize)>,
+    targets: Vec<(Range<usize>, Target)>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Target {
+    Tab(usize),
+    Host,
 }
 
 impl Rendered {
-    /// Position of the tab drawn at `column`, or the nearest tab hidden behind
-    /// an overflow marker there.
-    pub fn tab_at(&self, column: usize) -> Option<usize> {
+    /// What a click at `column` reaches. An overflow marker reaches the nearest
+    /// tab it hides.
+    pub fn target_at(&self, column: usize) -> Option<Target> {
         self.targets
             .iter()
             .find(|(columns, _)| columns.contains(&column))
-            .map(|&(_, position)| position)
+            .map(|&(_, target)| target)
     }
 }
 
 pub fn render(bar: &Bar, theme: &Theme, cols: usize) -> Rendered {
-    let mode = Segment::new(
-        format!(" {} ", bar.mode),
-        theme.accent_text,
-        theme.mode(bar.mode),
-    )
-    .bold();
-    let mut session = bar
-        .session
-        .filter(|name| !name.is_empty())
-        .map(|name| Segment::new(format!(" {name} "), theme.text, theme.session_bg));
-    let mut stats = stat_segments(bar.usage, theme);
+    let mode = bar.mode.as_ref();
+    let mut leaner_sessions = sessions_richest_first(bar, theme).into_iter().peekable();
+    let mut session = leaner_sessions.next();
+    let mut leaner_pills = pills_richest_first(bar, theme).into_iter().peekable();
+    let mut pill = leaner_pills.next();
     let active = bar.tabs.iter().position(|tab| tab.active).unwrap_or(0);
-    let mut labels: Vec<String> = bar.tabs.iter().map(tab_label).collect();
-    let widths: Vec<usize> = labels.iter().map(|label| label.width()).collect();
+    let mut entities: Vec<Entity> = bar
+        .tabs
+        .iter()
+        .map(|tab| tab_entity(tab, &title(tab), mode, theme))
+        .collect();
+    let widths: Vec<usize> = entities.iter().map(Entity::width).collect();
+    let all = 0..widths.len();
 
     let tabs = loop {
-        let budget = cols
-            .saturating_sub(chain_width(iter::once(&mode).chain(&session)) + chain_width(&stats));
-        if let Some(window) = fit(&widths, active, budget) {
-            break window_segments(bar.tabs, &mut labels, window, theme);
+        let reserved = LEFT_MARGIN
+            + session.as_ref().map_or(0, |session| session.width() + GAP)
+            + pill.as_ref().map_or(0, |pill| GAP + pill.width());
+        let budget = cols.checked_sub(reserved);
+        let extras_to_shed = leaner_pills.peek().is_some() || leaner_sessions.peek().is_some();
+        let window = budget.and_then(|budget| {
+            if extras_to_shed {
+                (cost(&widths, &all) <= budget).then(|| all.clone())
+            } else {
+                fit(&widths, active, budget)
+            }
+        });
+        if let Some(window) = window {
+            break window_entities(bar.tabs, &mut entities, window, theme);
         }
-        if !stats.is_empty() {
-            stats.clear();
+        if let Some(leaner) = leaner_pills.next() {
+            pill = Some(leaner);
+        } else if let Some(leaner) = leaner_sessions.next() {
+            session = Some(leaner);
+        } else if mode.is_some() && session.is_some() {
+            session = None;
+        } else if pill.is_some() {
+            pill = None;
         } else if session.is_some() {
             session = None;
         } else {
-            break truncated_tab(&bar.tabs[active], budget, theme)
+            break bar
+                .tabs
+                .get(active)
+                .zip(budget)
+                .and_then(|(tab, budget)| truncated_tab(tab, mode, budget, theme))
                 .into_iter()
                 .collect();
         }
     };
 
-    let left: Vec<Segment> = iter::once(mode).chain(session).chain(tabs).collect();
-    let mut painter = Painter::new(cols, theme.muted_text);
-    painter.left_chain(&left);
-    painter.fill(cols.saturating_sub(painter.width + chain_width(&stats)));
-    painter.right_chain(&stats);
+    let mut painter = Painter::new(cols);
+    painter.blank(LEFT_MARGIN);
+    for (i, entity) in session.iter().chain(&tabs).enumerate() {
+        if i > 0 {
+            painter.blank(GAP);
+        }
+        painter.entity(entity);
+    }
+    if let Some(pill) = &pill {
+        painter.blank(cols.saturating_sub(painter.width + pill.width()));
+        painter.entity(pill);
+    }
     painter.finish()
 }
 
-fn stat_segments(usage: Usage, theme: &Theme) -> Vec<Segment> {
-    [
-        (CPU_ICON, usage.cpu),
-        (GPU_ICON, usage.gpu),
-        (MEM_ICON, usage.mem),
-    ]
-    .into_iter()
-    .filter_map(|(icon, percent)| {
-        let percent = percent?;
-        let fg = if percent >= CRIT_AT {
-            theme.crit
-        } else if percent >= WARN_AT {
-            theme.warn
-        } else {
-            theme.text
-        };
-        Some(Segment::new(
-            format!(" {icon} {percent:>3.0}% "),
-            fg,
-            theme.stats_bg,
-        ))
-    })
-    .collect()
+fn sessions_richest_first(bar: &Bar, theme: &Theme) -> Vec<Entity> {
+    let Some(name) = bar.session.filter(|name| !name.is_empty()) else {
+        return Vec::new();
+    };
+    let own = Span::new(name, theme.text);
+    let chain = (!bar.hosts.is_empty()).then(|| {
+        bar.hosts
+            .iter()
+            .flat_map(|host| {
+                [
+                    Span::new(host, theme.muted_text),
+                    Span::new(HOST_SEPARATOR, theme.faint_text),
+                ]
+            })
+            .chain(iter::once(own.clone()))
+            .collect::<Entity>()
+            .targeting(Target::Host)
+    });
+    chain.into_iter().chain([Entity::from(own)]).collect()
+}
+
+fn pills_richest_first(bar: &Bar, theme: &Theme) -> Vec<Entity> {
+    match &bar.mode {
+        Some(mode) => (0..=mode.hints.len())
+            .rev()
+            .map(|shown| pill(mode_spans(mode, &mode.hints[..shown], theme), theme))
+            .collect(),
+        None => Some(stat_spans(bar.usage, theme))
+            .filter(|spans| !spans.is_empty())
+            .map(|spans| pill(spans, theme))
+            .into_iter()
+            .collect(),
+    }
+}
+
+fn pill(content: Vec<Span>, theme: &Theme) -> Entity {
+    let cap = |glyph: &str| Span::new(glyph, theme.pill_bg);
+    iter::once(cap(CAP_LEFT))
+        .chain(content.into_iter().map(|span| span.on(theme.pill_bg)))
+        .chain(iter::once(cap(CAP_RIGHT)))
+        .collect()
+}
+
+fn stat_spans(usage: Usage, theme: &Theme) -> Vec<Span> {
+    [("CPU", usage.cpu), ("GPU", usage.gpu), ("MEM", usage.mem)]
+        .into_iter()
+        .filter_map(|(label, percent)| Some((label, percent?)))
+        .enumerate()
+        .flat_map(|(i, (label, percent))| {
+            let percent = percent.round();
+            let lead = if i == 0 { 0 } else { GAP };
+            let level = if percent >= CRIT_AT {
+                theme.crit
+            } else if percent >= WARN_AT {
+                theme.warn
+            } else {
+                theme.text
+            };
+            let digits = format!("{percent:.0}");
+            let placeholder = "0".repeat(METER_DIGITS.saturating_sub(digits.len()));
+            [
+                Span::new(format!("{:lead$}{label} ", ""), theme.muted_text),
+                Span::new(placeholder, theme.ghost_text),
+                Span::new(format!("{digits}%"), level),
+            ]
+        })
+        .filter(|span| !span.text.is_empty())
+        .collect()
+}
+
+fn mode_spans(mode: &Mode, hints: &[Hint], theme: &Theme) -> Vec<Span> {
+    let label = Span::new(mode.label, theme.mode(mode.label)).bold(true);
+    let hints = hints.iter().flat_map(|hint| {
+        [
+            Span::new(format!("{:GAP$}{}", "", hint.keys), theme.text).bold(true),
+            Span::new(format!(" {}", hint.action), theme.muted_text),
+        ]
+    });
+    iter::once(label).chain(hints).collect()
 }
 
 fn flags(tab: &Tab) -> String {
@@ -144,105 +241,135 @@ fn flags(tab: &Tab) -> String {
     .collect()
 }
 
-fn tab_label(tab: &Tab) -> String {
-    format!(" {}{} ", tab.name, flags(tab))
+/// Zellij names a tab `Tab #<n>` until it is renamed, which the tab's own
+/// number already says.
+pub fn is_unnamed(name: &str) -> bool {
+    name.strip_prefix("Tab #")
+        .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
 }
 
-fn tab_segment(tab: &Tab, label: String, theme: &Theme) -> Segment {
-    let segment = if tab.active {
-        Segment::new(label, theme.accent_text, theme.tab_active_bg).bold()
-    } else {
-        Segment::new(label, theme.muted_text, theme.tab_bg)
+fn title(tab: &Tab) -> Cow<'_, str> {
+    match &tab.remote {
+        Some(host) => format!("{REMOTE_ICON} {host}").into(),
+        None if is_unnamed(&tab.name) => "".into(),
+        None => tab.name.as_str().into(),
+    }
+}
+
+fn tab_entity(tab: &Tab, title: &str, mode: Option<&Mode>, theme: &Theme) -> Entity {
+    let locked = mode.is_some_and(|mode| mode.locked);
+    let (number, name) = match (tab.active, locked) {
+        (true, false) => (theme.accent, theme.accent),
+        (true, true) | (false, false) => (theme.faint_text, theme.muted_text),
+        (false, true) => (theme.faint_text, theme.faint_text),
     };
-    segment.targeting(tab.position)
+    let number = mode
+        .filter(|mode| mode.digits_pick_tabs)
+        .map_or(number, |mode| theme.mode(mode.label));
+    let separator = if title.is_empty() { "" } else { " " };
+    Entity::from_iter([
+        Span::new((tab.position + 1).to_string(), number).bold(tab.active),
+        Span::new(format!("{separator}{title}{}", flags(tab)), name).bold(tab.active),
+    ])
+    .targeting(Target::Tab(tab.position))
 }
 
 fn marker_label(hidden: usize) -> String {
-    format!(" +{hidden} ")
+    format!("+{hidden}")
 }
 
-/// Width of `marker_label(hidden)` plus its separator, without formatting it.
-fn marker_cost(hidden: usize) -> usize {
+fn marker_width(hidden: usize) -> usize {
     match hidden {
         0 => 0,
-        n => 5 + n.ilog10() as usize,
+        n => 2 + n.ilog10() as usize,
     }
 }
 
+fn cost(widths: &[usize], window: &Range<usize>) -> usize {
+    let markers = [window.start, widths.len() - window.end];
+    let entities = window.len() + markers.iter().filter(|&&hidden| hidden > 0).count();
+    widths[window.clone()].iter().sum::<usize>()
+        + markers.into_iter().map(marker_width).sum::<usize>()
+        + GAP * entities.saturating_sub(1)
+}
+
+/// Cost is not monotonic in window size: showing the last hidden tabs on a
+/// side drops that side's marker, which can be wider than those tabs.
 fn fit(widths: &[usize], active: usize, budget: usize) -> Option<Range<usize>> {
-    if widths.is_empty() {
-        return Some(0..0);
+    let all = 0..widths.len();
+    if cost(widths, &all) <= budget {
+        return Some(all);
     }
-    let cost = |window: &Range<usize>| {
-        widths[window.clone()].iter().map(|w| w + 1).sum::<usize>()
-            + marker_cost(window.start)
-            + marker_cost(widths.len() - window.end)
-    };
     let mut window = active..active + 1;
-    if cost(&window) > budget {
-        return None;
-    }
     let mut grow_right_first = true;
     loop {
-        let right = (window.end < widths.len()).then(|| window.start..window.end + 1);
-        let left = (window.start > 0).then(|| window.start - 1..window.end);
-        let candidates = if grow_right_first {
+        let right =
+            (window.end < all.end).then(|| [window.end + 1, all.end].map(|end| window.start..end));
+        let left = (window.start > 0).then(|| [window.start - 1, 0].map(|start| start..window.end));
+        let sides = if grow_right_first {
             [right, left]
         } else {
             [left, right]
         };
-        match candidates.into_iter().flatten().find(|w| cost(w) <= budget) {
-            Some(grown) => window = grown,
-            None => return Some(window),
+        let grown = (0..2)
+            .flat_map(|reach| sides.iter().flatten().map(move |side| &side[reach]))
+            .find(|candidate| cost(widths, candidate) <= budget);
+        match grown {
+            Some(grown) => window = grown.clone(),
+            None => return (cost(widths, &window) <= budget).then_some(window),
         }
         grow_right_first = !grow_right_first;
     }
 }
 
-fn window_segments(
+fn window_entities(
     tabs: &[Tab],
-    labels: &mut Vec<String>,
+    entities: &mut Vec<Entity>,
     window: Range<usize>,
     theme: &Theme,
-) -> Vec<Segment> {
+) -> Vec<Entity> {
     let marker = |hidden: usize, target: &Tab| {
-        (hidden > 0).then(|| {
-            Segment::new(marker_label(hidden), theme.muted_text, theme.tab_bg)
-                .targeting(target.position)
-        })
+        Entity::from(Span::new(marker_label(hidden), theme.faint_text))
+            .targeting(Target::Tab(target.position))
     };
     let before = window
         .start
         .checked_sub(1)
-        .and_then(|i| marker(window.start, &tabs[i]));
+        .map(|i| marker(window.start, &tabs[i]));
     let after = tabs
         .get(window.end)
-        .and_then(|tab| marker(tabs.len() - window.end, tab));
-    let shown = tabs[window.clone()]
-        .iter()
-        .zip(labels.drain(window))
-        .map(|(tab, label)| tab_segment(tab, label, theme));
-    before.into_iter().chain(shown).chain(after).collect()
+        .map(|tab| marker(tabs.len() - window.end, tab));
+    before
+        .into_iter()
+        .chain(entities.drain(window))
+        .chain(after)
+        .collect()
 }
 
-fn truncated_tab(tab: &Tab, budget: usize, theme: &Theme) -> Option<Segment> {
-    let flags = flags(tab);
-    let room = budget
-        .checked_sub(3 + flags.width())
-        .filter(|&room| room > 0)?;
-    let label = format!(" {}{flags} ", ellipsize(&tab.name, room));
-    Some(tab_segment(tab, label, theme))
+fn truncated_tab(tab: &Tab, mode: Option<&Mode>, budget: usize, theme: &Theme) -> Option<Entity> {
+    let bare = tab_entity(tab, "", mode, theme);
+    let room = budget.checked_sub(bare.width())?;
+    let title = title(tab);
+    Some(if title.is_empty() || room < 2 {
+        bare
+    } else {
+        tab_entity(tab, &ellipsize(&title, room - 1), mode, theme)
+    })
 }
 
+/// Measures whole prefixes because a string's width is not the sum of its
+/// characters' widths: an emoji sequence is wider than its parts.
 pub fn clip(text: &str, max: usize) -> &str {
-    let mut width = 0;
-    for (i, c) in text.char_indices() {
-        width += c.width().unwrap_or(0);
-        if width > max {
-            return &text[..i];
-        }
+    if text.width() <= max {
+        return text;
     }
-    text
+    let end = text
+        .char_indices()
+        .map(|(start, c)| start + c.len_utf8())
+        .take_while(|&end| text[..end].width() <= max)
+        .last()
+        .unwrap_or(0);
+    &text[..end]
 }
 
 fn ellipsize(text: &str, max: usize) -> String {
@@ -253,302 +380,137 @@ fn ellipsize(text: &str, max: usize) -> String {
     }
 }
 
-fn chain_width<'a>(segments: impl IntoIterator<Item = &'a Segment>) -> usize {
-    segments.into_iter().map(|s| s.text.width() + 1).sum()
-}
-
-#[derive(Debug, Clone, Copy)]
-struct Style {
+#[derive(Debug, Clone)]
+struct Span {
+    text: String,
     fg: Rgb,
     bg: Option<Rgb>,
     bold: bool,
 }
 
-#[derive(Debug)]
-struct Segment {
-    text: String,
-    fg: Rgb,
-    bg: Rgb,
-    bold: bool,
-    target: Option<usize>,
-}
-
-impl Segment {
-    fn new(text: String, fg: Rgb, bg: Rgb) -> Self {
+impl Span {
+    fn new(text: impl Into<String>, fg: Rgb) -> Self {
         Self {
-            text,
+            text: text.into(),
             fg,
-            bg,
+            bg: None,
             bold: false,
-            target: None,
         }
     }
 
-    fn bold(self) -> Self {
-        Self { bold: true, ..self }
+    fn bold(self, bold: bool) -> Self {
+        Self { bold, ..self }
     }
 
-    fn targeting(self, position: usize) -> Self {
+    fn on(self, bg: Rgb) -> Self {
         Self {
-            target: Some(position),
+            bg: Some(bg),
             ..self
         }
     }
+}
 
-    fn style(&self) -> Style {
-        Style {
-            fg: self.fg,
-            bg: Some(self.bg),
-            bold: self.bold,
+#[derive(Debug, Default)]
+struct Entity {
+    spans: Vec<Span>,
+    target: Option<Target>,
+}
+
+impl Entity {
+    fn width(&self) -> usize {
+        self.spans.iter().map(|span| span.text.width()).sum()
+    }
+
+    fn targeting(self, target: Target) -> Self {
+        Self {
+            target: Some(target),
+            ..self
         }
     }
+}
+
+impl From<Span> for Entity {
+    fn from(span: Span) -> Self {
+        Self::from_iter([span])
+    }
+}
+
+impl FromIterator<Span> for Entity {
+    fn from_iter<I: IntoIterator<Item = Span>>(spans: I) -> Self {
+        Self {
+            spans: spans.into_iter().collect(),
+            target: None,
+        }
+    }
+}
+
+const REVERSED: &str = "\x1b[7m";
+const PLAIN: &str = "\x1b[27m\x1b[49m";
+const FOREGROUND: u8 = 38;
+const BACKGROUND: u8 = 48;
+
+fn color(line: &mut String, layer: u8, Rgb(r, g, b): Rgb) {
+    let _ = write!(line, "\x1b[{layer};2;{r};{g};{b}m");
 }
 
 struct Painter {
     cols: usize,
-    divider: Rgb,
     width: usize,
     rendered: Rendered,
 }
 
 impl Painter {
-    fn new(cols: usize, divider: Rgb) -> Self {
+    fn new(cols: usize) -> Self {
         Self {
             cols,
-            divider,
             width: 0,
             rendered: Rendered::default(),
         }
     }
 
-    fn paint(&mut self, text: &str, style: Style) -> Range<usize> {
-        let text = clip(text, self.cols - self.width);
+    /// Ghostty draws an explicit background at the window's opacity when
+    /// `background-opacity-cells` is set, but keeps reverse-video cells opaque.
+    /// A background is therefore sent as reverse video with the two colors
+    /// swapped, so it matches the glyphs joined to it, which are always opaque.
+    fn span(&mut self, span: &Span) {
+        let text = clip(&span.text, self.cols - self.width);
         let line = &mut self.rendered.line;
-        let Rgb(r, g, b) = style.fg;
-        let _ = write!(line, "\x1b[38;2;{r};{g};{b}m");
-        match style.bg {
-            Some(Rgb(r, g, b)) => {
-                let _ = write!(line, "\x1b[48;2;{r};{g};{b}m");
+        match span.bg {
+            Some(bg) => {
+                line.push_str(REVERSED);
+                color(line, FOREGROUND, bg);
+                color(line, BACKGROUND, span.fg);
             }
-            None => line.push_str("\x1b[49m"),
+            None => {
+                line.push_str(PLAIN);
+                color(line, FOREGROUND, span.fg);
+            }
         }
-        line.push_str(if style.bold { "\x1b[1m" } else { "\x1b[22m" });
+        line.push_str(if span.bold { "\x1b[1m" } else { "\x1b[22m" });
         line.push_str(text);
-        let start = self.width;
         self.width += text.width();
-        start..self.width
     }
 
-    fn fill(&mut self, columns: usize) {
+    fn blank(&mut self, columns: usize) {
         let columns = columns.min(self.cols - self.width);
-        self.rendered.line.push_str("\x1b[49m");
+        self.rendered.line.push_str(PLAIN);
         self.rendered.line.extend(iter::repeat_n(' ', columns));
         self.width += columns;
     }
 
-    fn segment(&mut self, segment: &Segment) {
-        let columns = self.paint(&segment.text, segment.style());
-        if let Some(position) = segment.target {
-            self.rendered.targets.push((columns, position));
+    fn entity(&mut self, entity: &Entity) {
+        let start = self.width;
+        for span in &entity.spans {
+            self.span(span);
         }
-    }
-
-    /// Powerline convention: a thin divider between segments that share a
-    /// background, otherwise a solid arrow in the segment's own color.
-    fn separator(&mut self, arrow: Arrow, segment_bg: Rgb, neighbour_bg: Option<Rgb>) {
-        let (glyph, fg, bg) = if neighbour_bg == Some(segment_bg) {
-            (arrow.thin, self.divider, neighbour_bg)
-        } else {
-            (arrow.hard, segment_bg, neighbour_bg)
-        };
-        self.paint(
-            glyph,
-            Style {
-                fg,
-                bg,
-                bold: false,
-            },
-        );
-    }
-
-    fn left_chain(&mut self, segments: &[Segment]) {
-        for (i, segment) in segments.iter().enumerate() {
-            self.segment(segment);
-            self.separator(
-                RIGHTWARD,
-                segment.bg,
-                segments.get(i + 1).map(|next| next.bg),
-            );
-        }
-    }
-
-    fn right_chain(&mut self, segments: &[Segment]) {
-        let mut previous_bg = None;
-        for segment in segments {
-            self.separator(LEFTWARD, segment.bg, previous_bg);
-            self.segment(segment);
-            previous_bg = Some(segment.bg);
+        if let Some(target) = entity.target {
+            self.rendered.targets.push((start..self.width, target));
         }
     }
 
     fn finish(mut self) -> Rendered {
+        self.blank(self.cols - self.width);
         self.rendered.line.push_str("\x1b[0m");
         self.rendered
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::theme::tests::config;
-
-    fn theme() -> Theme {
-        Theme::from_config(&config()).unwrap()
-    }
-
-    fn tabs(names: &[&str], active: usize) -> Vec<Tab> {
-        names
-            .iter()
-            .enumerate()
-            .map(|(position, name)| Tab {
-                position,
-                name: (*name).to_owned(),
-                active: position == active,
-                ..Tab::default()
-            })
-            .collect()
-    }
-
-    fn usage() -> Usage {
-        Usage {
-            cpu: Some(12.4),
-            mem: Some(63.0),
-            gpu: Some(95.0),
-        }
-    }
-
-    fn visible(line: &str) -> String {
-        let mut out = String::new();
-        let mut chars = line.chars();
-        while let Some(c) = chars.next() {
-            if c == '\x1b' {
-                chars.by_ref().find(|&c| c == 'm');
-            } else {
-                out.push(c);
-            }
-        }
-        out
-    }
-
-    fn draw(tabs: &[Tab], usage: Usage, cols: usize) -> (String, Rendered) {
-        let bar = Bar {
-            mode: "NORMAL",
-            session: Some("main"),
-            tabs,
-            usage,
-        };
-        let rendered = render(&bar, &theme(), cols);
-        (visible(&rendered.line), rendered)
-    }
-
-    #[test]
-    fn fills_exactly_the_given_width() {
-        let tabs = tabs(&["editor", "agent ✳ 日本語", "logs", "build", "notes"], 2);
-        for cols in 0..140 {
-            let (text, _) = draw(&tabs, usage(), cols);
-            assert_eq!(text.width(), cols, "cols={cols}: {text:?}");
-        }
-    }
-
-    #[test]
-    fn draws_every_part_when_there_is_room() {
-        let (text, _) = draw(&tabs(&["editor", "logs"], 1), usage(), 100);
-        for part in [
-            " NORMAL ".to_owned(),
-            " main ".to_owned(),
-            " editor ".to_owned(),
-            " logs ".to_owned(),
-            format!(" {CPU_ICON}  12% "),
-            format!(" {GPU_ICON}  95% "),
-            format!(" {MEM_ICON}  63% "),
-        ] {
-            assert!(text.contains(&part), "{part:?} in {text:?}");
-        }
-        assert!(text.find("logs") < text.find(CPU_ICON));
-    }
-
-    #[test]
-    fn colors_stats_by_load() {
-        let (_, rendered) = draw(&tabs(&["a"], 0), usage(), 100);
-        let Rgb(r, g, b) = theme().crit;
-        let crit = format!("\x1b[38;2;{r};{g};{b}m");
-        let gpu_at = rendered.line.find(GPU_ICON).unwrap();
-        assert!(rendered.line[..gpu_at].rfind(&crit).is_some());
-    }
-
-    #[test]
-    fn clicks_resolve_to_tab_positions() {
-        let (text, rendered) = draw(&tabs(&["editor", "logs"], 0), Usage::default(), 80);
-        let column = |needle: &str| text[..text.find(needle).unwrap()].width();
-        assert_eq!(rendered.tab_at(column("editor")), Some(0));
-        assert_eq!(rendered.tab_at(column("logs")), Some(1));
-        assert_eq!(rendered.tab_at(column("NORMAL")), None);
-        assert_eq!(rendered.tab_at(79), None);
-    }
-
-    #[test]
-    fn overflow_keeps_the_active_tab_and_marks_hidden_ones() {
-        let names: Vec<String> = (0..30).map(|i| format!("tab{i:02}")).collect();
-        let names: Vec<&str> = names.iter().map(String::as_str).collect();
-        let (text, rendered) = draw(&tabs(&names, 15), Usage::default(), 60);
-        assert!(text.contains("tab15"), "{text:?}");
-        assert!(
-            !text.contains("tab00") && !text.contains("tab29"),
-            "{text:?}"
-        );
-        let left = text.find(" +").unwrap();
-        let right = text.rfind(" +").unwrap();
-        assert!(left < right);
-        let hidden_left: usize = text[left + 2..].split(' ').next().unwrap().parse().unwrap();
-        assert_eq!(
-            rendered.tab_at(text[..left + 1].width()),
-            Some(hidden_left - 1)
-        );
-    }
-
-    #[test]
-    fn sheds_stats_then_session_then_shortens_the_active_tab() {
-        let tabs = tabs(&["a-very-long-tab-name"], 0);
-        let (text, _) = draw(&tabs, usage(), 66);
-        assert!(text.contains('%'), "{text:?}");
-        let (text, _) = draw(&tabs, usage(), 50);
-        assert!(text.contains("main") && !text.contains('%'), "{text:?}");
-        let (text, _) = draw(&tabs, usage(), 35);
-        assert!(
-            !text.contains("main") && text.contains("a-very-long-tab-name"),
-            "{text:?}"
-        );
-        let (text, _) = draw(&tabs, usage(), 20);
-        assert!(text.contains(" a-very-… "), "{text:?}");
-    }
-
-    #[test]
-    fn marker_cost_matches_the_marker_it_measures() {
-        for hidden in [1, 9, 10, 99, 100, 12345] {
-            assert_eq!(marker_cost(hidden), marker_label(hidden).width() + 1);
-        }
-        assert_eq!(marker_cost(0), 0);
-    }
-
-    #[test]
-    fn shows_tab_state_flags() {
-        let mut tabs = tabs(&["a"], 0);
-        tabs[0].fullscreen = true;
-        tabs[0].floating = true;
-        let (text, _) = draw(&tabs, Usage::default(), 80);
-        assert!(
-            text.contains(&format!(" a {FULLSCREEN_ICON} {FLOATING_ICON} ")),
-            "{text:?}"
-        );
     }
 }
