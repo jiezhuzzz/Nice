@@ -1,6 +1,6 @@
 use std::mem::{self, MaybeUninit};
 
-use nicebar_core::sample::{CpuTicks, Sample, mean};
+use nicebar_core::sample::{Gpu, Sample, Ticks, mean};
 use objc2_core_foundation::{CFDictionary, CFNumber, CFRetained, CFString, CFType, Type};
 use objc2_io_kit::{
     IOIteratorNext, IOObjectRelease, IORegistryEntryCreateCFProperty, IOServiceGetMatchingServices,
@@ -18,11 +18,11 @@ pub fn sample() -> Sample {
     Sample {
         cpu: cpu(host),
         mem: memory(host),
-        gpu: gpu(),
+        gpu: gpu().map(Gpu::Percent),
     }
 }
 
-fn cpu(host: libc::mach_port_t) -> Option<CpuTicks> {
+fn cpu(host: libc::mach_port_t) -> Option<Ticks> {
     let mut info = MaybeUninit::<libc::host_cpu_load_info>::uninit();
     let mut count = libc::HOST_CPU_LOAD_INFO_COUNT;
     // SAFETY: `info` is a host_cpu_load_info and `count` is its size in
@@ -41,7 +41,7 @@ fn cpu(host: libc::mach_port_t) -> Option<CpuTicks> {
     // SAFETY: the kernel filled the struct on success.
     let ticks = unsafe { info.assume_init() }.cpu_ticks.map(u64::from);
     let total = ticks.iter().sum();
-    Some(CpuTicks {
+    Some(Ticks {
         busy: total - ticks[libc::CPU_STATE_IDLE as usize],
         total,
     })
