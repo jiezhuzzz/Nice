@@ -1,7 +1,13 @@
 {
   den.aspects.gitui.homeManager = {
+    config,
+    pkgs,
+    ...
+  }: {
     programs.gitui = {
       enable = true;
+      # gitui reads its theme from the one file a flag names.
+      package = config.nice.appearance.wrap pkgs.gitui (config.nice.theme.pair (variant: ["--theme" "${config.catppuccin.sources.gitui}/${variant.slug}.ron"]));
       keyConfig = ''
         // Note:
         // If the default key layout is lower case,

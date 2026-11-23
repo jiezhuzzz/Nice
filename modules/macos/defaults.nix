@@ -24,6 +24,7 @@
       };
 
       NSGlobalDomain = {
+        AppleInterfaceStyleSwitchesAutomatically = true;
         AppleICUForce24HourTime = true;
         AppleShowAllExtensions = true;
         ApplePressAndHoldEnabled = false;

@@ -1,8 +1,12 @@
-{
+{nice, ...}: {
   den.aspects.desktop.noctalia.shell.homeManager = {pkgs, ...}: {
     programs.noctalia = {
       enable = true;
       systemd.enable = true;
+
+      # noctalia sets the desktop's color-scheme with `gsettings` or `dconf`,
+      # whichever it finds, and a systemd unit's PATH promises neither.
+      extraPackages = [pkgs.dconf];
 
       # The settings GUI writes its overrides to a separate settings.toml, so a
       # read-only store symlink for this base config is fine.
@@ -74,14 +78,19 @@
           };
         };
 
+        # noctalia cannot follow another source of light or dark, so it is the
+        # source: it switches at sunrise and sunset here, and the desktop's
+        # color-scheme setting it writes is what every other app follows.
+        location = {inherit (nice.facts.location) latitude longitude;};
+
         theme = {
-          mode = "dark";
+          mode = "auto";
           source = "builtin";
           builtin = "Catppuccin";
 
-          # Templates rewrite other apps' home-manager-owned config files in
-          # place, failing the next activation with "would be clobbered".
-          # Enabling one in the settings GUI overrides this.
+          # The built-in templates rewrite other apps' home-manager-owned config
+          # files in place, failing the next activation with "would be
+          # clobbered". Enabling one in the settings GUI overrides this.
           templates.builtin_ids = [];
         };
       };

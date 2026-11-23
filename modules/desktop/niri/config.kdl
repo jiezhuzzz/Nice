@@ -72,8 +72,6 @@ layout {
     // Border is off, so this ring is the only focus indication.
     focus-ring {
         width 2
-        active-color "@focusActive@"
-        inactive-color "@focusInactive@"
     }
     border { off; }
     default-column-width { proportion 0.500000; }
@@ -138,3 +136,7 @@ binds {
     XF86MonBrightnessDown { spawn-sh "noctalia msg brightness-down"; }
     XF86MonBrightnessUp { spawn-sh "noctalia msg brightness-up"; }
 }
+
+// Written by noctalia with the current mode's colors (niri.nix); absent until
+// its first start.
+include optional=true "@colors@"

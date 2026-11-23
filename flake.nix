@@ -14,6 +14,10 @@
       url = "github:catppuccin/nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    catppuccin-palette = {
+      url = "github:catppuccin/palette";
+      flake = false;
+    };
     caveman = {
       url = "github:JuliusBrussee/caveman";
       flake = false;
@@ -39,6 +43,10 @@
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    helix = {
+      url = "github:helix-editor/helix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
       url = "github:nix-community/home-manager";

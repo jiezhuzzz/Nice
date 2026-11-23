@@ -21,7 +21,10 @@
   in {
     programs.claude-code = {
       enable = true;
-      package = llmAgents.claude-code;
+      # Claude Code's own `auto` follows the terminal only between its built-in
+      # themes, and nothing but a setting names a custom one. So each session
+      # starts in the theme matching its terminal and keeps it.
+      package = config.nice.appearance.wrap llmAgents.claude-code (config.nice.theme.pair (variant: ["--settings" (builtins.toJSON {theme = "custom:${variant.slug}";})]));
       configDir = "${config.xdg.configHome}/claude";
       context = nice.agents.context;
       settings = {
@@ -86,7 +89,6 @@
           CLAUDE_CODE_TMPDIR = "/tmp/claude-code-${config.home.username}";
         };
         outputStyle = "Concise";
-        theme = "auto";
         tui = "fullscreen";
         attribution = {
           commit = "";

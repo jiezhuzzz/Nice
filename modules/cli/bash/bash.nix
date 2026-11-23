@@ -1,22 +1,15 @@
 {
   den.aspects.bash.homeManager = {
     config,
+    lib,
     pkgs,
     ...
   }: let
-    c = config.nice.theme.palette;
-  in {
-    programs.bash = {
-      enable = true;
-      bashrcExtra = ''
-        source ${pkgs.blesh}/share/blesh/ble.sh --attach=prompt
-      '';
-    };
+    inherit (config.nice) appearance theme;
 
-    xdg.configFile."blesh/init.sh".text = ''
-      # Ghostty supports truecolor but does not always set COLORTERM.
-      bleopt term_true_colors=semicolon
+    exports = vars: lib.concatLines (lib.mapAttrsToList (name: value: "export ${name}=${lib.escapeShellArg value}") vars);
 
+    faces = c: ''
       ble-face -s syntax_default           'fg=${c.text}'
       ble-face -s syntax_command           'fg=${c.blue}'
       ble-face -s syntax_quoted            'fg=${c.green}'
@@ -54,6 +47,43 @@
       ble-face -s region              'bg=${c.surface0}'
       ble-face -s region_target       'fg=${c.peach},bg=${c.surface1}'
       ble-face -s region_match        'fg=${c.peach},bg=${c.surface1}'
+    '';
+  in {
+    programs.bash = {
+      enable = true;
+      # Bash has no way to hear of an appearance change, so each shell keeps
+      # the one it started with. The terminal is asked before ble.sh loads:
+      # once attached, ble.sh reads the terminal's replies itself.
+      bashrcExtra = ''
+        if [[ $- == *i* ]]; then
+          source ${./terminal-appearance.bash}
+          case $(terminal_appearance || echo "''${NICE_APPEARANCE-}") in
+            light)
+              ${exports appearance.exports.light}
+              ;;
+            *)
+              ${exports appearance.exports.dark}
+              ;;
+          esac
+          unset -f terminal_appearance
+        fi
+
+        source ${pkgs.blesh}/share/blesh/ble.sh --attach=prompt
+      '';
+    };
+
+    xdg.configFile."blesh/init.sh".text = ''
+      # Ghostty supports truecolor but does not always set COLORTERM.
+      bleopt term_true_colors=semicolon
+
+      case $NICE_APPEARANCE in
+        light)
+          ${faces theme.variants.light.palette}
+          ;;
+        *)
+          ${faces theme.variants.dark.palette}
+          ;;
+      esac
     '';
   };
 }

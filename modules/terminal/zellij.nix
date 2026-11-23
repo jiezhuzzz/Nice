@@ -12,11 +12,9 @@
     lib,
     ...
   }: let
-    palette = config.nice.theme.palette;
+    inherit (config.nice.theme) variants;
 
-    nicebar = {
-      _props.location = "file:${nicebarPath}";
-      stats = lib.getExe pkgs.nicebar-stats;
+    roles = palette: {
       inherit (palette) text;
       muted_text = palette.subtext0;
       faint_text = palette.overlay1;
@@ -36,6 +34,13 @@
       mode_rename = palette.pink;
       mode_session = palette.flamingo;
     };
+
+    nicebar =
+      {
+        _props.location = "file:${nicebarPath}";
+        stats = lib.getExe pkgs.nicebar-stats;
+      }
+      // lib.concatMapAttrs (appearance: variant: lib.mapAttrs' (role: lib.nameValuePair "${appearance}_${role}") (roles variant.palette)) variants;
 
     # Zellij keys its permission cache by plugin path and shows the grant
     # prompt inside the plugin's own pane, which a one-row bar cannot fit.
@@ -88,6 +93,8 @@
         }
       ];
       settings = {
+        theme_light = variants.light.slug;
+        theme_dark = variants.dark.slug;
         show_startup_tips = false;
         show_release_notes = false;
         default_layout = "nice";

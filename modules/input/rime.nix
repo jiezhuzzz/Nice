@@ -1,10 +1,32 @@
 {
   den.aspects.rime.homeManager = {
+    config,
     pkgs,
     lib,
     ...
   }: let
+    inherit (config.nice.theme) variants;
     inherit (pkgs.stdenv.hostPlatform) isDarwin;
+
+    # Squirrel writes colors as 0xBBGGRR.
+    bgr = hex: "0x${lib.concatMapStrings (offset: builtins.substring offset 2 hex) [5 3 1]}";
+    schemeName = variant: "catppuccin_${variant.flavor}";
+    # The roles of catppuccin/squirrel, which catppuccin/nix does not package.
+    scheme = variant:
+      {name = variant.title;}
+      // lib.mapAttrs (_: bgr) {
+        back_color = variant.palette.crust;
+        border_color = variant.palette.mantle;
+        text_color = variant.palette.subtext1;
+        label_color = variant.palette.subtext0;
+        candidate_text_color = variant.palette.text;
+        hilited_back_color = variant.palette.mauve;
+        hilited_candidate_text_color = variant.palette.base;
+        hilited_candidate_label_color = variant.palette.surface0;
+        hilited_text_color = variant.palette.surface2;
+        hilited_comment_text_color = variant.palette.surface0;
+        comment_text_color = variant.palette.surface2;
+      };
     rimeDir =
       if isDarwin
       then "Library/Rime"
@@ -43,11 +65,16 @@
 
     home.file."Library/Rime/squirrel.custom.yaml" = {
       enable = isDarwin;
-      text = ''
-        patch:
-          style/candidate_list_layout: linear
-          style/inline_preedit: true
-      '';
+      text = builtins.toJSON {
+        patch =
+          {
+            "style/candidate_list_layout" = "linear";
+            "style/inline_preedit" = true;
+            "style/color_scheme" = schemeName variants.light;
+            "style/color_scheme_dark" = schemeName variants.dark;
+          }
+          // lib.concatMapAttrs (_: variant: {"preset_color_schemes/${schemeName variant}" = scheme variant;}) variants;
+      };
     };
 
     # Rime's deployer only recompiles when a source file is newer than the

@@ -1,24 +1,27 @@
-import type { EngineInterface, Register } from 'claude-code'
-
-const NORD = {
-  polarNight3: '#4c566a',
-  snowStorm0: '#d8dee9',
-  frost0: '#8fbcbb',
-  frost1: '#88c0d0',
-  frost2: '#81a1c1',
-  frost3: '#5e81ac',
-  red: '#bf616a',
-  orange: '#d08770',
-  green: '#a3be8c',
-  purple: '#b48ead',
-} as const
+import type { EngineInterface, Register, ThemeKey } from 'claude-code'
 
 const DROP_ORDER = ['clock', 'cost', 'worktree', 'cwd', 'branch', 'usage', 'ctx'] as const
 
 type SegmentId = 'model' | (typeof DROP_ORDER)[number]
-type Part = { text: string; color: string; bold?: boolean }
+type Part = { text: string; color: ThemeKey; bold?: boolean }
 type Segment = { id: SegmentId; parts: Part[] }
 type Git = { branch: string; worktree: string }
+
+// Keys of the session's theme, not colors, so the status follows whichever
+// theme is active. A mod is offered only this subset of a theme's keys, picked
+// here for the color ../../theme.nix gives each one.
+const COLOR = {
+  separator: 'subtle',
+  model: 'ide',
+  effort: 'suggestion',
+  cwd: 'text',
+  branch: 'merged',
+  worktree: 'planMode',
+  ctx: 'success',
+  usage: 'claude',
+  cost: 'error',
+  clock: 'bashBorder',
+} as const satisfies Record<SegmentId | 'separator' | 'effort', ThemeKey>
 
 const SEPARATOR = ' │ '
 const REFRESH_MS = 10_000
@@ -100,9 +103,9 @@ const fit = (segments: readonly Segment[], budget: number): readonly Segment[] =
   return columnsOf(kept) <= budget ? kept : []
 }
 
-const segment = (id: SegmentId, text: string, color: string, bold?: boolean): Segment => ({
+const segment = (id: SegmentId, text: string, bold?: boolean): Segment => ({
   id,
-  parts: [{ text, color, bold }],
+  parts: [{ text, color: COLOR[id], bold }],
 })
 
 let hint = ''
@@ -173,17 +176,17 @@ const segmentsOf = async ($: EngineInterface): Promise<Segment[]> => {
     {
       id: 'model' as const,
       parts: [
-        { text: displayName(model), color: NORD.frost1, bold: true },
-        ...(level === undefined ? [] : [{ text: ` ${level}`, color: NORD.frost2 }]),
+        { text: displayName(model), color: COLOR.model, bold: true },
+        ...(level === undefined ? [] : [{ text: ` ${level}`, color: COLOR.effort }]),
       ],
     },
-    segment('cwd', fishPath(cwd, home), NORD.snowStorm0),
-    branch !== '' && segment('branch', branch, NORD.purple),
-    worktree !== '' && segment('worktree', worktree, NORD.frost0),
-    segment('ctx', `Ctx: ${Math.round(usage.context.percent ?? 0)}%`, NORD.green),
-    limits.length > 0 && segment('usage', limits.join(' '), NORD.orange),
-    usage.cost !== undefined && segment('cost', `$${usage.cost.usd.toFixed(2)}`, NORD.red, true),
-    segment('clock', elapsed(now - usage.startedAt), NORD.frost3),
+    segment('cwd', fishPath(cwd, home)),
+    branch !== '' && segment('branch', branch),
+    worktree !== '' && segment('worktree', worktree),
+    segment('ctx', `Ctx: ${Math.round(usage.context.percent ?? 0)}%`),
+    limits.length > 0 && segment('usage', limits.join(' ')),
+    usage.cost !== undefined && segment('cost', `$${usage.cost.usd.toFixed(2)}`, true),
+    segment('clock', elapsed(now - usage.startedAt)),
   ].filter((part): part is Segment => part !== false)
 }
 
@@ -253,7 +256,7 @@ export const register: Register = on => {
 
     const { Box, Text } = $.ui.resolve(e)
     const texts = segments.flatMap(({ parts }, i) => [
-      ...(i === 0 ? [] : [<Text color={NORD.polarNight3}>{SEPARATOR}</Text>]),
+      ...(i === 0 ? [] : [<Text color={COLOR.separator}>{SEPARATOR}</Text>]),
       ...parts.map(({ text, color, bold }) => (
         <Text color={color} bold={bold}>
           {text}

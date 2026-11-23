@@ -4,7 +4,11 @@
     pkgs,
     lib,
     ...
-  }: {
+  }: let
+    inherit (config.nice.theme) variants;
+  in {
+    xdg.configFile = lib.concatMapAttrs (_: variant: {"ghostty/themes/${variant.slug}".source = "${config.catppuccin.sources.ghostty}/${variant.slug}.conf";}) variants;
+
     programs.ghostty = {
       enable = true;
       package =
@@ -13,6 +17,7 @@
         else pkgs.ghostty;
       settings =
         {
+          theme = "light:${variants.light.slug},dark:${variants.dark.slug}";
           font-family = [
             "JetBrainsMonoNL Nerd Font"
             "Noto Sans Mono CJK SC"

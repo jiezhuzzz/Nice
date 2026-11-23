@@ -17,7 +17,7 @@ impl Rgb {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ThemeError {
-    Missing(&'static str),
+    Missing(String),
     Invalid(String),
 }
 
@@ -34,8 +34,66 @@ impl std::error::Error for ThemeError {}
 
 const MODE_PREFIX: &str = "mode_";
 
-/// Colors by role, read from the plugin configuration. `mode` colors every
-/// mode, and `mode_<label>` (e.g. `mode_locked`) overrides it for one mode.
+/// Which of its two themes the host terminal is showing.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Appearance {
+    Light,
+    #[default]
+    Dark,
+}
+
+impl Appearance {
+    fn prefix(self) -> &'static str {
+        match self {
+            Appearance::Light => "light_",
+            Appearance::Dark => "dark_",
+        }
+    }
+}
+
+/// A theme for each appearance, read from the plugin configuration keys under
+/// that appearance's prefix (`light_text`, `dark_text`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Themes {
+    light: Shades,
+    dark: Shades,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Shades {
+    lit: Theme,
+    dimmed: Theme,
+}
+
+impl Themes {
+    pub fn from_config(config: &BTreeMap<String, String>) -> Result<Themes, ThemeError> {
+        let shades = |appearance: Appearance| {
+            Theme::from_config(config, appearance.prefix()).map(|lit| Shades {
+                dimmed: lit.dimmed(),
+                lit,
+            })
+        };
+        Ok(Themes {
+            light: shades(Appearance::Light)?,
+            dark: shades(Appearance::Dark)?,
+        })
+    }
+
+    pub fn get(&self, appearance: Appearance, dimmed: bool) -> &Theme {
+        let shades = match appearance {
+            Appearance::Light => &self.light,
+            Appearance::Dark => &self.dark,
+        };
+        if dimmed {
+            &shades.dimmed
+        } else {
+            &shades.lit
+        }
+    }
+}
+
+/// Colors by role. `mode` colors every mode, and `mode_<label>` (e.g.
+/// `mode_locked`) overrides it for one mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Theme {
     pub text: Rgb,
@@ -51,15 +109,21 @@ pub struct Theme {
 }
 
 impl Theme {
-    pub fn from_config(config: &BTreeMap<String, String>) -> Result<Theme, ThemeError> {
+    fn from_config(config: &BTreeMap<String, String>, prefix: &str) -> Result<Theme, ThemeError> {
         let parse = |key: &str, value: &str| {
             Rgb::from_hex(value).ok_or_else(|| ThemeError::Invalid(key.to_owned()))
         };
-        let required =
-            |key: &'static str| parse(key, config.get(key).ok_or(ThemeError::Missing(key))?);
+        let required = |role: &str| {
+            let key = format!("{prefix}{role}");
+            match config.get(&key) {
+                Some(value) => parse(&key, value),
+                None => Err(ThemeError::Missing(key)),
+            }
+        };
+        let mode_prefix = format!("{prefix}{MODE_PREFIX}");
         let mode_overrides = config
             .iter()
-            .filter_map(|(key, value)| Some((key, key.strip_prefix(MODE_PREFIX)?, value)))
+            .filter_map(|(key, value)| Some((key, key.strip_prefix(mode_prefix.as_str())?, value)))
             .map(|(key, label, value)| Ok((label.to_ascii_uppercase(), parse(key, value)?)))
             .collect::<Result<_, _>>()?;
         Ok(Theme {
@@ -82,7 +146,7 @@ impl Theme {
 
     /// `pill_bg` is kept, since the pill's caps are drawn in it to match its
     /// fill.
-    pub fn dimmed(&self) -> Theme {
+    fn dimmed(&self) -> Theme {
         let faint = self.faint_text;
         Theme {
             text: faint,

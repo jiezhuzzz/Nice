@@ -1,5 +1,5 @@
 # SAFETY: openFirewall is any-source; the box is NAT'd (v4) and ULA-only (v6).
-{
+{nice, ...}: {
   den.aspects.homelab.glance.nixos = {config, ...}: {
     nice.web.services.glance = {
       port = 8083;
@@ -34,7 +34,7 @@
                     type = "custom-api";
                     title = "Air Quality";
                     cache = "10m";
-                    url = "https://api.waqi.info/feed/geo:41.8781;-87.6298/?token=\${WAQI_TOKEN}";
+                    url = "https://api.waqi.info/feed/geo:${builtins.toJSON nice.facts.location.latitude};${builtins.toJSON nice.facts.location.longitude}/?token=\${WAQI_TOKEN}";
                     template = ''
                       {{ $aqi := printf "%03s" (.JSON.String "data.aqi") }}
                       {{ $aqiraw := .JSON.String "data.aqi" }}

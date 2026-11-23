@@ -4,7 +4,7 @@ use crate::mode::ModeView;
 use crate::remote::Remotes;
 use nicebar_core::bar::{self, Bar, Rendered, Tab, Target};
 use nicebar_core::sample::{Meter, Sample};
-use nicebar_core::theme::{Theme, ThemeError};
+use nicebar_core::theme::{Appearance, ThemeError, Themes};
 use zellij_tile::prelude::*;
 
 mod mode;
@@ -21,6 +21,13 @@ const PRIMING_SECONDS: f64 = 0.5;
 struct Nicebar {
     permission: Option<PermissionStatus>,
     session: Option<String>,
+    /// Zellij follows one host terminal's appearance for the whole session,
+    /// not one per attached client.
+    appearance: Option<Appearance>,
+    /// Zellij also replays the latest appearance to a new subscriber, addressed
+    /// to a client, and that replay can arrive after a newer session-wide
+    /// report. It counts only until the session reports one.
+    replayed_appearance: Appearance,
     bars: BTreeMap<SlotId, BarSlot>,
     views: BTreeMap<ClientId, View>,
     meter: Meter,
@@ -31,11 +38,6 @@ struct Nicebar {
 struct BarSlot {
     themes: Result<Themes, ThemeError>,
     stats_command: Option<String>,
-}
-
-struct Themes {
-    lit: Theme,
-    dimmed: Theme,
 }
 
 #[derive(Default)]
@@ -64,6 +66,7 @@ impl ZellijSharedPlugin for Nicebar {
             EventType::Mouse,
             EventType::Timer,
             EventType::RunCommandResult,
+            EventType::HostTerminalThemeChanged,
             // Zellij drops the startup ModeUpdate when it beats the permission
             // grant and then skips identical resends, so the session name is
             // taken once from the costlier SessionUpdate instead.
@@ -79,10 +82,7 @@ impl ZellijSharedPlugin for Nicebar {
         self.bars.insert(
             slot.id,
             BarSlot {
-                themes: Theme::from_config(&slot.configuration).map(|theme| Themes {
-                    dimmed: theme.dimmed(),
-                    lit: theme,
-                }),
+                themes: Themes::from_config(&slot.configuration),
                 stats_command: slot.configuration.get("stats").cloned(),
             },
         );
@@ -139,6 +139,17 @@ impl ZellijSharedPlugin for Nicebar {
                 })
             }
             Event::PaneUpdate(manifest) => self.remotes.update(&manifest),
+            Event::HostTerminalThemeChanged(mode) => {
+                let appearance = match mode {
+                    HostTerminalThemeMode::Light => Appearance::Light,
+                    HostTerminalThemeMode::Dark => Appearance::Dark,
+                };
+                match context.client_id {
+                    Some(_) => self.replayed_appearance = appearance,
+                    None => self.appearance = Some(appearance),
+                }
+                RenderResponse::All
+            }
             Event::Mouse(Mouse::LeftClick(_, column)) => {
                 let target = context
                     .client_id
@@ -190,11 +201,10 @@ impl ZellijSharedPlugin for Nicebar {
                 tabs: &tabs,
                 usage: self.meter.usage(),
             },
-            if view.dimmed {
-                &themes.dimmed
-            } else {
-                &themes.lit
-            },
+            themes.get(
+                self.appearance.unwrap_or(self.replayed_appearance),
+                view.dimmed,
+            ),
             cols,
         );
         print!("{}", view.rendered.line);

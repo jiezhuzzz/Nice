@@ -28,6 +28,11 @@ in {
         subnet = fixed types.str "10.88.0.0/16";
         gateway = fixed types.str "10.88.0.1";
       };
+      # Chicago.
+      location = {
+        latitude = fixed types.float 41.8781;
+        longitude = fixed types.float (-87.6298);
+      };
     };
   };
 

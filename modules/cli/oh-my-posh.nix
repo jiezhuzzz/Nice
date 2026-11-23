@@ -9,8 +9,9 @@
         "$schema" = "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json";
         version = 4;
         final_space = true;
-        palette = {
-          inherit (config.nice.theme.palette) pink lavender mauve;
+        palettes = {
+          template = ''{{ if eq .Env.NICE_APPEARANCE "light" }}light{{ else }}dark{{ end }}'';
+          list = config.nice.theme.pair (variant: {inherit (variant.palette) pink lavender mauve;});
         };
         blocks = [
           {

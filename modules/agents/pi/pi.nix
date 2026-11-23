@@ -23,56 +23,46 @@ in {
     pkgs,
     ...
   }: let
+    inherit (config.nice) theme;
     llmAgents = inputs'.llm-agents.packages;
     piThemes = "${inputs'.pi-catppuccin.packages.default}/share/pi/themes";
     sessionDir = "${config.xdg.stateHome}/pi/sessions";
     cleanup = sessionCleanup pkgs;
 
-    # Nord colors and segment order follow ../claude-code/statusline, the Claude
-    # Code status mod.
-    sep = "[ │ ](polar_night_3)";
+    # Segment order follows ../claude-code/statusline, the Claude Code status
+    # mod. pi-starship has a single palette, so the colors are roles of pi's
+    # active theme (`pi:<role>`), which does follow the terminal.
+    role = name: "fg:pi:${name}";
+    sep = "[ │ ](${role "dim"})";
     piStarshipSettings = {
-      palette = "nord";
-      palettes.nord = {
-        polar_night_3 = "#4c566a";
-        snow_storm_0 = "#d8dee9";
-        frost_0 = "#8fbcbb";
-        frost_1 = "#88c0d0";
-        frost_2 = "#81a1c1";
-        frost_3 = "#5e81ac";
-        red = "#bf616a";
-        yellow = "#ebcb8b";
-        green = "#a3be8c";
-        purple = "#b48ead";
-      };
       format = "$model $thinking${sep}$directory(${sep}$git_branch)(${sep}$git_worktree)${sep}$context${sep}$cost";
       model = {
         format = "[$model]($style)";
-        style = "bold frost_1";
+        style = "bold ${role "border"}";
       };
       thinking = {
         format = "[$level]($style)";
-        style = "frost_2";
+        style = role "borderAccent";
       };
       directory = {
         format = "[$path]($style)";
-        style = "snow_storm_0";
+        style = role "text";
         fish_style_pwd_dir_length = 1;
       };
       git_branch = {
         format = "[$branch]($style)";
-        style = "purple";
+        style = role "accent";
       };
       git_worktree = {
         format = "[$name]($style)";
-        style = "frost_0";
+        style = role "mdCode";
       };
       context = {
         format = "[$percentage]($style)";
         display = [
           {
             threshold = 0;
-            style = "green";
+            style = role "success";
             hidden = false;
           }
         ];
@@ -83,7 +73,7 @@ in {
         display = [
           {
             threshold = 0;
-            style = "bold red";
+            style = "bold ${role "error"}";
             hidden = false;
           }
         ];
@@ -119,7 +109,8 @@ in {
         extensions = ["${./rewind-aborted-prompt.ts}"];
         skills = ["${inputs.superpowers}/skills/systematic-debugging"];
         themes = [piThemes];
-        theme = "catppuccin-${config.catppuccin.flavor}";
+        # Light first; pi switches between the two with the terminal.
+        theme = "${theme.variants.light.slug}/${theme.variants.dark.slug}";
       };
     };
 

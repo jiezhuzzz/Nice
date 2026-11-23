@@ -8,7 +8,9 @@
       pkgs,
       ...
     }: let
+      inherit (config.nice) theme;
       noctalia = "${config.programs.noctalia.package}/bin/noctalia";
+      colors = "${config.xdg.stateHome}/niri/colors.kdl";
       handleLidClose = pkgs.writeShellScript "noctalia-handle-lid-close" ''
         set -euo pipefail
 
@@ -29,15 +31,27 @@
       xdg.configFile."niri/config.kdl".source = pkgs.replaceVarsWith {
         src = ./config.kdl;
         replacements = {
-          inherit handleLidClose noctalia;
-          cursorTheme = config.nice.theme.cursor.name;
-          cursorSize = toString config.nice.theme.cursor.size;
-          focusActive = config.nice.theme.palette.surface2;
-          focusInactive = config.nice.theme.palette.surface0;
+          inherit colors handleLidClose noctalia;
+          cursorTheme = theme.cursor.name;
+          cursorSize = toString theme.cursor.size;
         };
         postCheck = ''
           ${lib.getExe pkgs.niri} validate --config "$target"
         '';
+      };
+
+      # niri cannot tell light from dark, so noctalia keeps the file config.kdl
+      # includes on the current mode's colors.
+      programs.noctalia.settings.theme.templates.user.niri = {
+        input_path_modes = theme.pair (variant: "${pkgs.writeText "niri-${variant.slug}.kdl" ''
+          layout {
+              focus-ring {
+                  active-color "${variant.palette.surface2}"
+                  inactive-color "${variant.palette.surface0}"
+              }
+          }
+        ''}");
+        output_path = colors;
       };
 
       home.packages = with pkgs; [
