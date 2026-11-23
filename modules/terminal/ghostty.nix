@@ -53,12 +53,12 @@
         // (
           if pkgs.stdenv.hostPlatform.isDarwin
           then {
-            background-opacity = 0.8;
+            background-opacity = 0.9;
             background-blur = "macos-glass-clear";
             macos-titlebar-style = "hidden";
           }
           else {
-            background-opacity = 0.7;
+            background-opacity = 0.8;
           }
         );
     };
