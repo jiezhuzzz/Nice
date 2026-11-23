@@ -99,6 +99,7 @@
         show_release_notes = false;
         default_layout = "nice";
         attach_to_session = true;
+        nested_session_handling = "fullscreen";
         # Overrides zellij's built-in alias, so its own layouts get nicebar too.
         plugins.tab-bar = nicebar;
         keybinds = {
