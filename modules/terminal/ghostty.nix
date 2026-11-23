@@ -59,7 +59,7 @@
             macos-titlebar-style = "hidden";
           }
           else {
-            background-opacity = 0.5;
+            background-opacity = 0.7;
           }
         );
     };
