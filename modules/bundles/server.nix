@@ -3,7 +3,6 @@
     core
     bash
     oh-my-posh
-    tmux
     rclone
     shpool
   ];

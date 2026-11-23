@@ -1,5 +1,5 @@
 # ssh and git signing read /run/agenix rather than a forwarded agent, which does
-# not survive a detached tmux/shpool.
+# not survive a detached zellij/shpool.
 {
   den,
   nice,

@@ -45,7 +45,6 @@
       environment.systemPackages = with pkgs; [
         helix
         btop
-        tmux
         alsa-utils
       ];
     };

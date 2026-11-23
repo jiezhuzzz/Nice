@@ -5,7 +5,7 @@
     includes = [den.aspects.standalone den.aspects.git-signing];
 
     # ForwardAgent's per-connection $SSH_AUTH_SOCK dies on disconnect, while
-    # long-lived tmux panes keep the old value. .profile runs before .bashrc, so
+    # long-lived zellij panes keep the old value. .profile runs before .bashrc, so
     # it still sees the real socket.
     homeManager.programs.bash = {
       profileExtra = ''
