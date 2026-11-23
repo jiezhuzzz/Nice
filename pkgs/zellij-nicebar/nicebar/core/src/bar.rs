@@ -175,11 +175,14 @@ fn pills_richest_first(bar: &Bar, theme: &Theme) -> Vec<Entity> {
             .rev()
             .map(|shown| pill(mode_spans(mode, &mode.hints[..shown], theme), theme))
             .collect(),
-        None => Some(stat_spans(bar.usage, theme))
-            .filter(|spans| !spans.is_empty())
-            .map(|spans| pill(spans, theme))
-            .into_iter()
-            .collect(),
+        None => {
+            let spans = stat_spans(bar.usage, theme);
+            if spans.is_empty() {
+                Vec::new()
+            } else {
+                vec![pill(spans, theme)]
+            }
+        }
     }
 }
 

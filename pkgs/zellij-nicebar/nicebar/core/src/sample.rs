@@ -111,13 +111,10 @@ impl Meter {
             now.zip(before)
                 .and_then(|(now, before)| now.usage_since(before))
         };
-        let gpu_ticks = match sample.gpu {
-            Some(Gpu::Ticks(ticks)) => Some(ticks),
-            _ => None,
-        };
-        let gpu = match sample.gpu {
-            Some(Gpu::Percent(percent)) => Some(percent),
-            _ => since(gpu_ticks, self.last_gpu),
+        let (gpu, gpu_ticks) = match sample.gpu {
+            Some(Gpu::Percent(percent)) => (Some(percent), None),
+            Some(Gpu::Ticks(ticks)) => (since(Some(ticks), self.last_gpu), Some(ticks)),
+            None => (None, None),
         };
         self.usage = Usage {
             cpu: since(sample.cpu, self.last_cpu),

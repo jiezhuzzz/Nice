@@ -251,12 +251,10 @@ fn label(mode: InputMode) -> Option<&'static str> {
 }
 
 fn describe(key: &KeyWithModifier) -> Key {
-    let modifiers = key.key_modifiers.iter().map(|modifier| match modifier {
-        KeyModifier::Ctrl => "ctrl".to_owned(),
-        KeyModifier::Alt => "alt".to_owned(),
-        KeyModifier::Shift => "shift".to_owned(),
-        KeyModifier::Super => "super".to_owned(),
-    });
+    let modifiers = key
+        .key_modifiers
+        .iter()
+        .map(|modifier| modifier.to_string().to_lowercase());
     let (named, bare) = match key.bare_key {
         BareKey::Char(c) if c != ' ' => (false, c.to_string()),
         named => (true, named.to_string().to_lowercase()),
