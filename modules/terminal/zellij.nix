@@ -18,7 +18,7 @@
       inherit (palette) text;
       muted_text = palette.subtext0;
       faint_text = palette.overlay1;
-      ghost_text = palette.surface2;
+      ghost_text = palette.surface1;
       accent = palette.mauve;
       pill_bg = palette.crust;
       warn = palette.yellow;
