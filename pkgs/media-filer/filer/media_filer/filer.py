@@ -15,7 +15,6 @@ log = logging.getLogger("media_filer")
 VIDEO_EXTS = {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".wmv"}
 _SAMPLE = re.compile(r"(?i)(^|[\W_])(sample|trailer|extras?)([\W_]|$)")
 MIN_VIDEO_BYTES = 100 * 1024 * 1024
-_LABEL_CATS = {"movie", "tv", "anime"}
 
 # Adult content lives outside the Jellyfin library.
 EXCLUDED_DOWNLOAD_DIRS = (layout.MEDIA_ROOT / "downloads" / "xxx",)
@@ -50,7 +49,7 @@ def _is_excluded(src_dir: Path) -> bool:
 def _label_category(labels: str) -> str | None:
     for tok in labels.split(","):
         tok = tok.strip().lower()
-        if tok in _LABEL_CATS:
+        if tok in agent_mod.CATEGORIES:
             return tok
     return None
 
@@ -85,7 +84,7 @@ def _resolve(name: str, files: list[Path], labels: str, tracker: str | None, cla
     return decision
 
 
-def _file_episode(fname: str, tracker: str | None = None) -> tuple[int | None, int | None]:
+def _file_episode(fname: str, tracker: str | None) -> tuple[int | None, int | None]:
     if tracker:
         r = trackers.file(tracker, fname)
         if r is not None:

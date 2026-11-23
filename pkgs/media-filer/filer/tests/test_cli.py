@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from media_filer import cli
 
 

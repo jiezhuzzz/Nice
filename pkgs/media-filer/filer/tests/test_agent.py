@@ -52,7 +52,6 @@ def test_forbids_all_mutating_and_task_tools():
         seen["argv"] = argv
         return '{"type":"movie","title":"X","year":2020,"season":null,"episode":null,"confident":true}'
 
-    from media_filer.agent import classify
     classify("MyShow.X", ["MyShow.X.mkv"], runner=runner)
     idx = seen["argv"].index("--disallowedTools")
     disallowed = seen["argv"][idx + 1]

@@ -5,7 +5,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 
-_VALID_TYPES = ("movie", "tv", "anime")
+CATEGORIES = ("movie", "tv", "anime")
 
 PROMPT = """You are classifying a completed torrent for filing into a Jellyfin library.
 Reply with ONLY a JSON object (no prose, no code fence) with exactly these keys:
@@ -65,9 +65,9 @@ def classify(name: str, files: list[str], *, runner=_default_runner, timeout: in
         out = ""
     data = _extract_json(out) or {}
     ctype = data.get("type")
-    confident = bool(data.get("confident")) and ctype in _VALID_TYPES and bool(data.get("title"))
+    confident = bool(data.get("confident")) and ctype in CATEGORIES and bool(data.get("title"))
     return AgentResult(
-        type=ctype if ctype in _VALID_TYPES else "unknown",
+        type=ctype if ctype in CATEGORIES else "unknown",
         title=data.get("title") if isinstance(data.get("title"), str) else None,
         year=_as_int(data.get("year")),
         season=_as_int(data.get("season")),

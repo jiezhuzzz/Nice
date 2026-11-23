@@ -7,9 +7,6 @@ from urllib.parse import urlparse
 
 from .parse import Candidate
 
-# Announce URLs use varying subdomains (pt.hdsky.me, tracker.hdsky.me, ...).
-_HOSTS: dict[str, str] = {"hdsky": "hdsky"}
-
 _YEAR = r"(?:19|20)\d{2}"
 
 
@@ -22,9 +19,11 @@ def tracker_for(trackers_env: str) -> str | None:
         return None
     for token in re.split(r"[\s,]+", trackers_env.strip()):
         host = (urlparse(token).hostname or "").lower()
-        for needle, tid in _HOSTS.items():
-            if needle in host:
-                return tid
+        # Announce URLs use varying subdomains (pt.hdsky.me, tracker.hdsky.me,
+        # ...), so a tracker's id is looked for anywhere in the host.
+        for tracker in _REGISTRY:
+            if tracker in host:
+                return tracker
     return None
 
 

@@ -33,6 +33,4 @@ def anime_absolute_dest(root: Path, title: str, number: int, ext: str) -> Path:
 
 
 def is_inside(dest: Path, root: Path) -> bool:
-    r = root.resolve()
-    d = dest.resolve()
-    return d == r or r in d.parents
+    return dest.resolve().is_relative_to(root.resolve())
