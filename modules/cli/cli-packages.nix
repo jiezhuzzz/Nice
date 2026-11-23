@@ -4,6 +4,7 @@
       ast-grep
       comma
       lazyrsync
+      nil
       rsync
       tea
       yubikey-manager
