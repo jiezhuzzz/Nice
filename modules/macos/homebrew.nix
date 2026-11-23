@@ -52,7 +52,6 @@
         "raycast"
         "skim"
         "squirrel-app"
-        "stats"
         "tailscale-app"
         "zoom"
       ];
