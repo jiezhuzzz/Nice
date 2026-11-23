@@ -16,7 +16,18 @@
   in {
     programs.helix = {
       enable = true;
-      package = inputs'.helix.packages.default;
+      # HACK: helix pins tree-sitter-perl 1.0.0, whose vendored bsearch.c
+      # collides with the C23 `bsearch` macro in glibc 2.44. Drop once helix
+      # pins 1.1.1 or later, which deletes that file.
+      package = inputs'.helix.packages.default.override {
+        grammarOverlays = [
+          (_: prev: {
+            perl = prev.perl.overrideAttrs (old: {
+              env = old.env // {NIX_CFLAGS_COMPILE = "-std=gnu17";};
+            });
+          })
+        ];
+      };
       defaultEditor = true;
       settings = {
         theme = theme.pair (variant: variant.slug);
