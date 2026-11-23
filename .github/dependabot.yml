@@ -1,0 +1,29 @@
+version: 2
+
+updates:
+  - package-ecosystem: nix
+    directories:
+      - /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      flake-inputs:
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directories:
+      - /pkgs/zellij-nicebar/nicebar
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      nicebar:
+        patterns: ["*"]
+    ignore:
+      # Must match the zellij that nixpkgs ships, so it moves with nixpkgs.
+      - dependency-name: zellij-tile
