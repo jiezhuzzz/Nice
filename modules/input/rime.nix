@@ -85,15 +85,18 @@
       ''
         run rm -rf $VERBOSE_ARG "$HOME/${rimeDir}/build"
       ''
-      + lib.optionalString (!isDarwin) ''
-        run ${pkgs.systemd}/bin/systemctl --user try-restart 'app-org.fcitx.Fcitx5@autostart.service' || true
-      ''
-      + lib.optionalString isDarwin ''
-        squirrel="/Library/Input Methods/Squirrel.app/Contents/MacOS/Squirrel"
-        if [ -x "$squirrel" ]; then
-          run "$squirrel" --reload || true
-        fi
-      ''
+      + (
+        if isDarwin
+        then ''
+          squirrel="/Library/Input Methods/Squirrel.app/Contents/MacOS/Squirrel"
+          if [ -x "$squirrel" ]; then
+            run "$squirrel" --reload || true
+          fi
+        ''
+        else ''
+          run ${pkgs.systemd}/bin/systemctl --user try-restart 'app-org.fcitx.Fcitx5@autostart.service' || true
+        ''
+      )
     );
   };
 }

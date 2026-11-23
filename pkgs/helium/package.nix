@@ -137,11 +137,7 @@
   ];
 
   # $out is left for the shell to expand at build time.
-  libPath =
-    lib.makeLibraryPath deps
-    + lib.optionalString stdenv.hostPlatform.is64bit
-    (":" + lib.makeSearchPathOutput "lib" "lib64" deps)
-    + ":$out/opt/helium";
+  libPath = "${lib.makeLibraryPath deps}:${lib.makeSearchPathOutput "lib" "lib64" deps}:$out/opt/helium";
 in
   stdenv.mkDerivation {
     pname = "helium";
@@ -228,7 +224,7 @@ in
       homepage = "https://helium.computer";
       license = lib.licenses.gpl3Only;
       sourceProvenance = [lib.sourceTypes.binaryNativeCode];
-      platforms = ["x86_64-linux" "aarch64-linux"];
+      platforms = lib.attrNames arches;
       mainProgram = "helium";
     };
   }

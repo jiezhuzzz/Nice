@@ -3,8 +3,6 @@
     includes = with den.aspects; [nixos-workstation laptop nixps._];
 
     nixos = {pkgs, ...}: {
-      time.timeZone = "America/Chicago";
-
       environment.systemPackages = with pkgs; [
         wifitui
       ];
@@ -17,11 +15,9 @@
       ];
     };
 
-    provides.to-users.homeManager = {lib, ...}: {
-      programs.zed-editor.userSettings = {
-        buffer_font_size = lib.mkForce 18;
-        ui_font_size = 20;
-      };
+    provides.to-users.homeManager.programs.zed-editor.userSettings = {
+      buffer_font_size = 18;
+      ui_font_size = 20;
     };
   };
 }

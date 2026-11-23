@@ -95,7 +95,6 @@ in {
         quietStartup = true;
         hideThinkingBlock = false;
         packages = [
-          # "npm:context-mode"
           "npm:pi-subagents"
           "npm:pi-web-access"
           "npm:@narumitw/pi-starship"

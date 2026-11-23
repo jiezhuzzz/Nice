@@ -1,6 +1,7 @@
 {
   den,
   lib,
+  nice,
   ...
 }: {
   den.systems = ["x86_64-linux" "aarch64-darwin"];
@@ -8,6 +9,8 @@
   den.default = {
     nixos = {pkgs, ...}: {
       system.stateVersion = lib.mkDefault "26.05";
+
+      time.timeZone = lib.mkDefault nice.facts.location.timeZone;
 
       nix.settings.experimental-features = ["nix-command" "flakes"];
 

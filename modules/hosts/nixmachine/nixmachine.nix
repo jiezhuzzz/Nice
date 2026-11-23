@@ -16,8 +16,6 @@
       # this must never change.
       networking.hostId = "1d847e7e";
 
-      time.timeZone = "America/Chicago";
-
       # /boot/.fallback is a spare ESP synced by hand: systemd-boot doesn't
       # mirror ESPs. Deliberately NOT pinning linuxPackages_latest: ZFS lags the
       # newest kernel.

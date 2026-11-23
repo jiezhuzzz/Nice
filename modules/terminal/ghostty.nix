@@ -26,7 +26,6 @@
           window-padding-x = 8;
           window-padding-y = 8;
           cursor-style = "bar";
-          # cursor-style-blink = false;
           adjust-cursor-thickness = "200%";
           copy-on-select = true;
           # pi otherwise doesn't see alt+backspace under Ghostty

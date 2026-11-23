@@ -1,4 +1,10 @@
-{inputs, ...}: {
+{inputs, ...}: let
+  dualRole = held: alone: {
+    inherit held alone;
+    hold_threshold_millis = 0;
+    alone_timeout_millis = 100;
+  };
+in {
   flake-file.inputs.xremap-flake = {
     url = "github:xremap/nix-flake";
     inputs.nixpkgs.follows = "nixpkgs";
@@ -40,24 +46,9 @@
           {
             name = "Dual-role keys";
             remap = {
-              CapsLock = {
-                held = "Control_L";
-                alone = "Esc";
-                hold_threshold_millis = 0;
-                alone_timeout_millis = 100;
-              };
-              Shift_L = {
-                held = "Shift_L";
-                alone = ["Control_L" "Space"];
-                hold_threshold_millis = 0;
-                alone_timeout_millis = 100;
-              };
-              Shift_R = {
-                held = "Shift_R";
-                alone = ["Control_L" "Space"];
-                hold_threshold_millis = 0;
-                alone_timeout_millis = 100;
-              };
+              CapsLock = dualRole "Control_L" "Esc";
+              Shift_L = dualRole "Shift_L" ["Control_L" "Space"];
+              Shift_R = dualRole "Shift_R" ["Control_L" "Space"];
             };
           }
         ];

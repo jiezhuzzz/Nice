@@ -1,14 +1,14 @@
-{
-  den.aspects.macos.aerospace.homeManager = {pkgs, ...}: {
+{lib, ...}: let
+  workspaces = ["T" "B" "E" "C" "M"];
+in {
+  den.aspects.macos.aerospace.homeManager = {
     programs.aerospace = {
       enable = true;
-      launchd = {
-        enable = true;
-      };
+      launchd.enable = true;
       settings = {
         config-version = 2;
         # v2 no longer infers persistent workspaces from keybindings.
-        persistent-workspaces = ["T" "B" "E" "C" "M"];
+        persistent-workspaces = workspaces;
         enable-normalization-flatten-containers = true;
         enable-normalization-opposite-orientation-for-nested-containers = true;
         accordion-padding = 30;
@@ -64,62 +64,40 @@
             right = 10;
           };
         };
-        mode.main.binding = {
-          alt-h = "focus left";
-          alt-j = "focus down";
-          alt-k = "focus up";
-          alt-l = "focus right";
-          alt-shift-h = "move left";
-          alt-shift-j = "move down";
-          alt-shift-k = "move up";
-          alt-shift-l = "move right";
-          alt-slash = "layout tiles horizontal vertical";
-          alt-comma = "layout accordion horizontal vertical";
-          alt-f = "fullscreen";
-          alt-shift-space = "layout floating tiling";
-          alt-t = "workspace T";
-          alt-b = "workspace B";
-          alt-e = "workspace E";
-          alt-c = "workspace C";
-          alt-m = "workspace M";
-          alt-shift-t = "move-node-to-workspace T";
-          alt-shift-b = "move-node-to-workspace B";
-          alt-shift-e = "move-node-to-workspace E";
-          alt-shift-c = "move-node-to-workspace C";
-          alt-shift-m = "move-node-to-workspace M";
-          alt-tab = "workspace-back-and-forth";
-          alt-shift-tab = "move-workspace-to-monitor --wrap-around next";
+        mode.main.binding =
+          {
+            alt-h = "focus left";
+            alt-j = "focus down";
+            alt-k = "focus up";
+            alt-l = "focus right";
+            alt-shift-h = "move left";
+            alt-shift-j = "move down";
+            alt-shift-k = "move up";
+            alt-shift-l = "move right";
+            alt-slash = "layout tiles horizontal vertical";
+            alt-comma = "layout accordion horizontal vertical";
+            alt-f = "fullscreen";
+            alt-shift-space = "layout floating tiling";
+            alt-tab = "workspace-back-and-forth";
+            alt-shift-tab = "move-workspace-to-monitor --wrap-around next";
 
-          alt-shift-minus = "resize smart -50";
-          alt-shift-equal = "resize smart +50";
+            alt-shift-minus = "resize smart -50";
+            alt-shift-equal = "resize smart +50";
 
-          alt-shift-semicolon = "mode service";
-        };
-        mode.service.binding = {
-          esc = [
-            "reload-config"
-            "mode main"
-          ];
-          r = [
-            "flatten-workspace-tree"
-            "mode main"
-          ];
-          alt-shift-h = [
-            "join-with left"
-            "mode main"
-          ];
-          alt-shift-j = [
-            "join-with down"
-            "mode main"
-          ];
-          alt-shift-k = [
-            "join-with up"
-            "mode main"
-          ];
-          alt-shift-l = [
-            "join-with right"
-            "mode main"
-          ];
+            alt-shift-semicolon = "mode service";
+          }
+          // lib.mergeAttrsList (map (workspace: {
+              "alt-${lib.toLower workspace}" = "workspace ${workspace}";
+              "alt-shift-${lib.toLower workspace}" = "move-node-to-workspace ${workspace}";
+            })
+            workspaces);
+        mode.service.binding = lib.mapAttrs (_: command: [command "mode main"]) {
+          esc = "reload-config";
+          r = "flatten-workspace-tree";
+          alt-shift-h = "join-with left";
+          alt-shift-j = "join-with down";
+          alt-shift-k = "join-with up";
+          alt-shift-l = "join-with right";
         };
       };
     };

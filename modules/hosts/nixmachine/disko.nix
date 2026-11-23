@@ -31,6 +31,20 @@
     mkSharedMountOptions = group: mkMountOptions "root" group "2775";
     mkUserMountOptions = mode: mkMountOptions nice.user.name "users" mode;
 
+    poolOptions = {
+      ashift = "12";
+      autotrim = "on";
+    };
+    rootFsOptions = {
+      compression = "zstd";
+      atime = "off";
+      xattr = "sa";
+      acltype = "posixacl";
+      dnodesize = "auto";
+      mountpoint = "none";
+      canmount = "off";
+    };
+
     mkHdd = id: {
       type = "disk";
       device = "/dev/disk/by-id/${id}";
@@ -104,20 +118,8 @@
         rpool = {
           type = "zpool";
           mode = "mirror";
-          options = {
-            ashift = "12";
-            autotrim = "on";
-          };
-          rootFsOptions = {
-            compression = "zstd";
-            atime = "off";
-            xattr = "sa";
-            acltype = "posixacl";
-            dnodesize = "auto";
-            mountpoint = "none";
-            canmount = "off";
-            "com.sun:auto-snapshot" = "false";
-          };
+          options = poolOptions;
+          rootFsOptions = rootFsOptions // {"com.sun:auto-snapshot" = "false";};
           datasets = {
             "root" = {
               type = "zfs_fs";
@@ -172,7 +174,7 @@
             vdev = [
               {
                 mode = "raidz2";
-                members = ["sdb" "sdc" "sdd" "sde" "sdf" "sdg" "sdh" "sdi"];
+                members = lib.attrNames hddIds;
               }
             ];
             special = [
@@ -185,19 +187,8 @@
               }
             ];
           };
-          options = {
-            ashift = "12";
-            autotrim = "on";
-          };
-          rootFsOptions = {
-            compression = "zstd";
-            atime = "off";
-            xattr = "sa";
-            acltype = "posixacl";
-            dnodesize = "auto";
-            mountpoint = "none";
-            canmount = "off";
-          };
+          options = poolOptions;
+          inherit rootFsOptions;
           # special_small_blocks must stay below recordsize, else ALL writes land
           # on the special vdev. Once special is full, overflow goes back to HDD
           # silently.
@@ -279,20 +270,13 @@
         fast = {
           type = "zpool";
           mode = ""; # empty mode = stripe
-          options = {
-            ashift = "12";
-            autotrim = "on";
-          };
-          rootFsOptions = {
-            compression = "lz4";
-            atime = "off";
-            xattr = "sa";
-            acltype = "posixacl";
-            dnodesize = "auto";
-            mountpoint = "none";
-            canmount = "off";
-            "com.sun:auto-snapshot" = "false";
-          };
+          options = poolOptions;
+          rootFsOptions =
+            rootFsOptions
+            // {
+              compression = "lz4";
+              "com.sun:auto-snapshot" = "false";
+            };
           datasets = {
             "games" = {
               type = "zfs_fs";

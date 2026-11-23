@@ -14,15 +14,7 @@
     }: let
       # Standalone home-manager servers have no system agenix and take a
       # hand-placed token under the XDG data dir.
-      systemSecrets = osConfig.age.secrets or {};
-      tokenPath = name: let
-        secret = "rclone-${name}-token";
-      in
-        if builtins.hasAttr secret systemSecrets
-        then systemSecrets.${secret}.path
-        else "${config.xdg.dataHome}/rclone/${name}-token";
-      gdriveTokenPath = tokenPath "gdrive";
-      boxTokenPath = tokenPath "box";
+      tokenPath = name: osConfig.age.secrets."rclone-${name}-token".path or "${config.xdg.dataHome}/rclone/${name}-token";
       # macOS emits AppleDouble `._*` shadow files when writing xattrs to a
       # filesystem without xattr support, such as fuse-t.
       rcloneFilter = pkgs.writeText "rclone-mount-filter" ''
@@ -36,6 +28,12 @@
         umask = "022";
         filter-from = "${rcloneFilter}";
       };
+      mount = directory: {
+        enable = true;
+        autoMount = true;
+        mountPoint = "${config.home.homeDirectory}/${directory}";
+        options = mountOptions;
+      };
     in {
       programs.rclone = {
         enable = true;
@@ -44,25 +42,13 @@
             type = "drive";
             scope = "drive";
           };
-          secrets.token = gdriveTokenPath;
-          mounts."" = {
-            enable = true;
-            autoMount = true;
-            mountPoint = "${config.home.homeDirectory}/GDrive";
-            options = mountOptions;
-          };
+          secrets.token = tokenPath "gdrive";
+          mounts."" = mount "GDrive";
         };
         remotes.box = {
-          config = {
-            type = "box";
-          };
-          secrets.token = boxTokenPath;
-          mounts."" = {
-            enable = true;
-            autoMount = true;
-            mountPoint = "${config.home.homeDirectory}/Box";
-            options = mountOptions;
-          };
+          config.type = "box";
+          secrets.token = tokenPath "box";
+          mounts."" = mount "Box";
         };
       };
     };

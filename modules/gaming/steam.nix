@@ -2,11 +2,7 @@
   den.aspects.gaming.steam = {
     user.extraGroups = ["games"];
 
-    nixos = {
-      pkgs,
-      config,
-      ...
-    }: {
+    nixos = {pkgs, ...}: {
       programs.steam = {
         enable = true;
 

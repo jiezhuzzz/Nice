@@ -1,6 +1,7 @@
 {
   den.aspects.zed.homeManager = {
     config,
+    lib,
     pkgs,
     ...
   }: let
@@ -26,7 +27,7 @@
         theme = followSystem;
         icon_theme = followSystem;
         buffer_font_family = "JetBrainsMonoNL Nerd Font";
-        buffer_font_size = 14;
+        buffer_font_size = lib.mkDefault 14;
         on_last_window_closed = "quit_app";
         helix_mode = true;
         colorize_brackets = true;

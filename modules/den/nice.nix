@@ -11,6 +11,8 @@
     };
 in {
   options.nice = {
+    fixed = fixed types.raw fixed;
+
     user = {
       name = fixed types.str "jie";
       fullName = fixed types.str "jiezhuzzz";
@@ -32,6 +34,7 @@ in {
       location = {
         latitude = fixed types.float 41.8781;
         longitude = fixed types.float (-87.6298);
+        timeZone = fixed types.str "America/Chicago";
       };
     };
   };

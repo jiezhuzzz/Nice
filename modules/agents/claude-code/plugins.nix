@@ -28,8 +28,6 @@
 
   den.aspects.claude-code.plugins.homeManager = let
     officialPlugins = "${inputs.claude-plugins-official}/plugins";
-
-    communityPlugins = inputs.claude-plugins-community;
   in {
     # An attribute set rather than a list: the list form derives each directory
     # name from the store path and yields churn like `bxa1s0m3h4sh-source`.
@@ -37,7 +35,7 @@
       claude-code-setup = "${officialPlugins}/claude-code-setup";
       code-simplifier = "${officialPlugins}/code-simplifier";
       feature-dev = "${officialPlugins}/feature-dev";
-      eli5 = "${communityPlugins}/eli5";
+      eli5 = "${inputs.claude-plugins-community}/eli5";
       inherit (inputs) caveman ponytail;
     };
 

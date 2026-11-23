@@ -22,16 +22,8 @@
           default = false;
         };
         order = mkOption {type = types.int;};
-        host = mkOption {
-          type = types.str;
-          default = "${name}.${domain}";
-          readOnly = true;
-        };
-        url = mkOption {
-          type = types.str;
-          default = "https://${config.host}";
-          readOnly = true;
-        };
+        host = nice.fixed types.str "${name}.${domain}";
+        url = nice.fixed types.str "https://${config.host}";
         proxyDirectives = mkOption {
           type = types.nullOr types.lines;
           default = null;
@@ -53,11 +45,7 @@
         type = types.attrsOf service;
         default = {};
       };
-      ordered = mkOption {
-        type = types.listOf types.raw;
-        readOnly = true;
-        default = lib.sortOn (svc: svc.order) (lib.mapAttrsToList (name: svc: svc // {inherit name;}) cfg.services);
-      };
+      ordered = nice.fixed (types.listOf types.raw) (lib.sortOn (svc: svc.order) (lib.mapAttrsToList (name: svc: svc // {inherit name;}) cfg.services));
     };
 
     config.assertions =

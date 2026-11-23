@@ -1,10 +1,10 @@
-{lib, ...}: let
+{
+  lib,
+  nice,
+  ...
+}: let
   inherit (lib) mkOption types;
-  fixed = type: default:
-    mkOption {
-      inherit type default;
-      readOnly = true;
-    };
+  inherit (nice) fixed;
 
   appearance = {
     config,

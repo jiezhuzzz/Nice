@@ -2,32 +2,9 @@
   den.aspects.codex.homeManager = {
     config,
     inputs',
-    lib,
-    pkgs,
     ...
   }: let
     llmAgents = inputs'.llm-agents.packages;
-    # Codex rejects `[profiles.<name>]` tables in config.toml; each profile is its
-    # own CODEX_HOME/<name>.config.toml with top-level keys. See
-    # https://developers.openai.com/codex/config-advanced#profiles. A custom
-    # `model_providers` entry because there is no `openai_base_url` key.
-    apiProfile = (pkgs.formats.toml {}).generate "codex-api.config.toml" {
-      model_provider = "openai-us";
-      model_providers.openai-us = {
-        name = "OpenAI (US API)";
-        base_url = "https://us.api.openai.com/v1";
-        env_key = "OPENAI_API_KEY";
-        wire_api = "responses";
-      };
-    };
-
-    # Must match the CODEX_HOME path math in home-manager's
-    # modules/programs/codex.nix.
-    xdgConfigHome = lib.removePrefix config.home.homeDirectory config.xdg.configHome;
-    codexConfigDir =
-      if config.home.preferXdgDirectories
-      then "${xdgConfigHome}/codex"
-      else ".codex";
   in {
     programs.codex = {
       enable = true;
@@ -70,8 +47,17 @@
         prefix_rule(pattern = ["pip3"], decision = "forbidden", justification = "Use uv for dependency management")
         prefix_rule(pattern = ["uv", "pip"], decision = "forbidden", justification = "Use uv add or inline script metadata instead")
       '';
+      # A custom `model_providers` entry because there is no `openai_base_url`
+      # key.
+      profiles.api = {
+        model_provider = "openai-us";
+        model_providers.openai-us = {
+          name = "OpenAI (US API)";
+          base_url = "https://us.api.openai.com/v1";
+          env_key = "OPENAI_API_KEY";
+          wire_api = "responses";
+        };
+      };
     };
-
-    home.file."${codexConfigDir}/api.config.toml".source = apiProfile;
   };
 }

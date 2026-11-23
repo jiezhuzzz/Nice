@@ -1,4 +1,32 @@
-{
+let
+  hhkb = 1278;
+
+  escapeWhenAlone = description: condition: key: {
+    inherit description;
+    manipulators = [
+      {
+        type = "basic";
+        conditions = [
+          {
+            type = condition;
+            identifiers = [{vendor_id = hhkb;}];
+          }
+        ];
+        from = {
+          key_code = key;
+          modifiers.optional = ["any"];
+        };
+        to = [
+          {
+            key_code = "left_control";
+            lazy = true;
+          }
+        ];
+        to_if_alone = [{key_code = "escape";}];
+      }
+    ];
+  };
+in {
   den.aspects.macos.karabiner.homeManager = {
     xdg.configFile."karabiner/karabiner.json" = {
       force = true;
@@ -10,82 +38,16 @@
           {
             name = "Default";
             selected = true;
-            complex_modifications = {
-              rules = [
-                {
-                  description = "Caps Lock → Escape (alone) / Control (held) [any keyboard except HHKB]";
-                  manipulators = [
-                    {
-                      type = "basic";
-                      conditions = [
-                        {
-                          type = "device_unless";
-                          identifiers = [
-                            {
-                              vendor_id = 1278;
-                            }
-                          ];
-                        }
-                      ];
-                      from = {
-                        key_code = "caps_lock";
-                        modifiers.optional = ["any"];
-                      };
-                      to = [
-                        {
-                          key_code = "left_control";
-                          lazy = true;
-                        }
-                      ];
-                      to_if_alone = [
-                        {
-                          key_code = "escape";
-                        }
-                      ];
-                    }
-                  ];
-                }
-                {
-                  description = "Control → Escape (alone) / Control (held) [HHKB]";
-                  manipulators = [
-                    {
-                      type = "basic";
-                      conditions = [
-                        {
-                          type = "device_if";
-                          identifiers = [
-                            {
-                              vendor_id = 1278;
-                            }
-                          ];
-                        }
-                      ];
-                      from = {
-                        key_code = "left_control";
-                        modifiers.optional = ["any"];
-                      };
-                      to = [
-                        {
-                          key_code = "left_control";
-                          lazy = true;
-                        }
-                      ];
-                      to_if_alone = [
-                        {
-                          key_code = "escape";
-                        }
-                      ];
-                    }
-                  ];
-                }
-              ];
-            };
+            complex_modifications.rules = [
+              (escapeWhenAlone "Caps Lock → Escape (alone) / Control (held) [any keyboard except HHKB]" "device_unless" "caps_lock")
+              (escapeWhenAlone "Control → Escape (alone) / Control (held) [HHKB]" "device_if" "left_control")
+            ];
             devices = [
               {
                 identifiers = {
                   is_keyboard = true;
                   is_pointing_device = true;
-                  vendor_id = 1278;
+                  vendor_id = hhkb;
                   product_id = 22;
                 };
                 ignore = false;

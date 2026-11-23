@@ -14,8 +14,8 @@
       handleLidClose = pkgs.writeShellScript "noctalia-handle-lid-close" ''
         set -euo pipefail
 
-        outputs="$(${pkgs.niri}/bin/niri msg --json outputs)"
-        if ${pkgs.jq}/bin/jq -e '
+        outputs="$(${lib.getExe pkgs.niri} msg --json outputs)"
+        if ${lib.getExe pkgs.jq} -e '
           [to_entries[] | select(.key != "eDP-1" and .value.logical != null)]
           | length > 0
         ' <<<"$outputs" >/dev/null; then

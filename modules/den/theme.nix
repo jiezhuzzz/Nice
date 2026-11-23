@@ -1,9 +1,11 @@
 {
   inputs,
   lib,
+  nice,
   ...
 }: let
   inherit (lib) mkOption types;
+  inherit (nice) fixed;
 
   palettes = lib.importJSON "${inputs.catppuccin-palette}/palette.json";
 
@@ -18,12 +20,6 @@
     }) {
       light = "latte";
       dark = "mocha";
-    };
-
-  fixed = type: default:
-    mkOption {
-      inherit type default;
-      readOnly = true;
     };
 
   theme = {pkgs, ...}: {

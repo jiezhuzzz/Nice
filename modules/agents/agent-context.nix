@@ -1,4 +1,8 @@
-{lib, ...}: let
+{
+  lib,
+  nice,
+  ...
+}: let
   python = ''
     # Python
 
@@ -61,9 +65,5 @@
     - When a `flake.nix` devShell exists but there is no `.envrc`, suggest adding one containing `use flake` (then `direnv allow`) so it loads automatically — but do not create or commit the file.
   '';
 in {
-  options.nice.agents.context = lib.mkOption {
-    type = lib.types.str;
-    readOnly = true;
-    default = builtins.concatStringsSep "\n" [python lineWrapping commentPolicy nixDevEnvironments];
-  };
+  options.nice.agents.context = nice.fixed lib.types.str (builtins.concatStringsSep "\n" [python lineWrapping commentPolicy nixDevEnvironments]);
 }

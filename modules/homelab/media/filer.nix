@@ -8,7 +8,10 @@
   }: let
     inherit (pkgs) media-filer;
 
-    queue = "${config.services.transmission.settings.download-dir}/.filer-queue";
+    inherit (config.services) transmission;
+    user = config.users.users.media-filer;
+
+    queue = "${transmission.settings.download-dir}/.filer-queue";
 
     doneHook = pkgs.writeShellScript "transmission-done-filer" ''
       set -eu
@@ -28,7 +31,7 @@
     };
 
     systemd.tmpfiles.rules = [
-      "d ${queue} 2775 transmission media -"
+      "d ${queue} 2775 ${transmission.user} ${transmission.group} -"
     ];
 
     services.transmission.settings = {
@@ -48,13 +51,13 @@
       path = [pkgs.claude-code];
       serviceConfig = {
         Type = "oneshot";
-        User = "media-filer";
-        Group = "media";
+        User = user.name;
+        Group = user.group;
         ExecStart = "${media-filer}/bin/media-filer ${queue}";
 
         StateDirectory = "media-filer";
         Environment = [
-          "HOME=/var/lib/media-filer"
+          "HOME=${user.home}"
           "MEDIA_FILER_ROOT=${config.nice.media.root}"
         ];
         EnvironmentFile = config.age.secrets.media-filer-provider-keys.path;

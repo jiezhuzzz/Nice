@@ -11,7 +11,7 @@
     secureSuspend = pkgs.writeShellScript "noctalia-secure-suspend" ''
       set -euo pipefail
 
-      lock_marker="$XDG_RUNTIME_DIR/noctalia-session-locked"
+      lock_marker="${lockMarker}"
       for _ in {1..20}; do
         if [[ -e "$lock_marker" ]]; then
           break
@@ -28,12 +28,8 @@
       exec ${systemctl} suspend
     '';
 
-    startGuard =
-      "${pkgs.coreutils}/bin/rm -f \"${lockMarker}\""
-      + " && ${systemctl} --user start ${sleepGuardUnit}";
-    stopGuard =
-      "${pkgs.coreutils}/bin/touch \"${lockMarker}\""
-      + " && ${systemctl} --user stop ${sleepGuardUnit}";
+    startGuard = "${pkgs.coreutils}/bin/rm -f \"${lockMarker}\" && ${systemctl} --user start ${sleepGuardUnit}";
+    stopGuard = "${pkgs.coreutils}/bin/touch \"${lockMarker}\" && ${systemctl} --user stop ${sleepGuardUnit}";
   in {
     programs.noctalia.settings = {
       shell.session.power.suspend = "${secureSuspend}";
@@ -54,13 +50,7 @@
 
       Service = {
         Type = "simple";
-        ExecStart =
-          "${pkgs.systemd}/bin/systemd-inhibit"
-          + " --what=sleep"
-          + " --who=Noctalia"
-          + " --why=\"Session is not locked\""
-          + " --mode=block"
-          + " ${pkgs.coreutils}/bin/sleep infinity";
+        ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=sleep --who=Noctalia --why=\"Session is not locked\" --mode=block ${pkgs.coreutils}/bin/sleep infinity";
         Restart = "on-failure";
         RestartSec = 1;
       };
