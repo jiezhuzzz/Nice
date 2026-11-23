@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 
 import guessit
 
 
-@dataclass
+@dataclass(frozen=True)
 class Candidate:
     type: str | None
     title: str | None
@@ -31,6 +32,7 @@ def is_cjk(s: str | None) -> bool:
     return False
 
 
+@functools.cache
 def parse_name(name: str) -> Candidate:
     g = guessit.guessit(name)
     gtype = _scalar(g.get("type"))
