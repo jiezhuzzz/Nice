@@ -34,6 +34,13 @@
         editor = {
           color-modes = true;
           soft-wrap.enable = true;
+          rainbow-brackets = true;
+          lsp.auto-document-highlight = true;
+          buffer-picker.start-position = "previous";
+          word-completion.trigger-length = 4;
+          # Hides only the modal: a workspace's .helix config and git config
+          # stay gated until `:workspace-trust`.
+          workspace-trust.prompt = false;
         };
       };
     };
