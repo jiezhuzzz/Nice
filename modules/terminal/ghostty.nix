@@ -25,8 +25,6 @@
           font-size = 16;
           window-padding-x = 8;
           window-padding-y = 8;
-          cursor-style = "bar";
-          adjust-cursor-thickness = "200%";
           copy-on-select = true;
           # pi otherwise doesn't see alt+backspace under Ghostty
           # (libexec/pi/docs/terminal-setup.md). Ghostty's `text:` action parses
@@ -47,7 +45,7 @@
           # `detect` keys off the command basename, so launching zellij would
           # skip injection into the fish panes it spawns.
           shell-integration = "fish";
-          shell-integration-features = "cursor,sudo,ssh-env,ssh-terminfo,no-title,no-path";
+          shell-integration-features = "no-cursor,sudo,ssh-env,ssh-terminfo,no-title,no-path";
           background-opacity-cells = true;
         }
         // (
@@ -56,6 +54,7 @@
             background-opacity = 0.9;
             background-blur = "macos-glass-clear";
             macos-titlebar-style = "hidden";
+            quit-after-last-window-closed = true;
           }
           else {
             background-opacity = 0.8;
