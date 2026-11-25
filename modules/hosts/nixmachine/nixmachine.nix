@@ -48,7 +48,10 @@
     };
 
     provides.to-users = {
-      includes = [den.aspects.gaming];
+      includes = with den.aspects; [
+        gaming
+        hermes
+      ];
 
       # Driven over SSH, which has no seat session to hand out /dev/snd ACLs.
       user.extraGroups = ["audio"];
