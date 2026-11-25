@@ -10,6 +10,7 @@ in {
       home-ssh-key = "ssh/home.age";
       rclone-gdrive-token = "rclone/gdrive.age";
       rclone-box-token = "rclone/box.age";
+      taskwarrior-sync = "taskwarrior/sync.age";
     }
     // scoped "homelab" {
       waqi-token = "glance/waqi-token.age";

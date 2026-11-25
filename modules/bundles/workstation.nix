@@ -9,5 +9,6 @@
     ssh-agent-keys
     git-signing
     agenix-cli
+    taskwarrior
   ];
 }

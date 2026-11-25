@@ -26,6 +26,11 @@ in {
         host = fixed types.str "git.${config.nice.facts.domain}";
         sshPort = fixed types.port 2222;
       };
+      # Every replica shares one client ID: it names the task list, not a device.
+      tasks = {
+        host = fixed types.str "tasks.${config.nice.facts.domain}";
+        clientId = fixed types.str "68eb0b54-dd59-4455-96d9-67495b9f84d5";
+      };
       podman = {
         subnet = fixed types.str "10.88.0.0/16";
         gateway = fixed types.str "10.88.0.1";

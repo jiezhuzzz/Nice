@@ -35,6 +35,7 @@
       server
       ssh-identities
       git-agentless-signing
+      taskwarrior
     ];
 
     # SAFETY: scoped to jie, so a second user gets neither jie's credentials nor
