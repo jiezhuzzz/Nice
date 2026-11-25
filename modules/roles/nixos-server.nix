@@ -44,6 +44,8 @@
       # SAFETY: podman socket access is root-equivalent, which `wheel` already
       # grants on this box.
       extraGroups = ["media" "podman"];
+      # Keeps jie's user timers running with no login session open.
+      linger = true;
       # Only seeds the password at account creation (mutable users). Rotate with
       # `passwd`, then re-encrypt the hash into secrets/users/jie-password-hash.age.
       hashedPasswordFile = osConfig.age.secrets.jie-password-hash.path;
