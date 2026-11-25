@@ -12,7 +12,14 @@
 
       time.timeZone = lib.mkDefault nice.facts.location.timeZone;
 
-      nix.settings.experimental-features = ["nix-command" "flakes"];
+      nix.settings = {
+        experimental-features = ["nix-command" "flakes"];
+        # llm-agents' cache. It serves a build only while llm-agents' locked
+        # nixpkgs yields the same derivation as ours, since llm-agents follows
+        # our nixpkgs.
+        extra-substituters = ["https://cache.numtide.com"];
+        extra-trusted-public-keys = ["niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="];
+      };
 
       programs.nix-ld.enable = true;
 
