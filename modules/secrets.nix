@@ -12,7 +12,6 @@ in {
     }
     // scoped "homelab" {
       rclone-gdrive-token = "rclone/gdrive.age";
-      rclone-box-token = "rclone/box.age";
       waqi-token = "glance/waqi-token.age";
       cloudflare-token = "caddy/cloudflare-token.age";
       litellm-provider-keys = "llm/provider-keys.age";

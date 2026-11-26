@@ -5,7 +5,6 @@
       programs.fuse.enable = true;
 
       age.secrets.rclone-gdrive-token.owner = nice.user.name;
-      age.secrets.rclone-box-token.owner = nice.user.name;
     };
 
     homeManager = {
@@ -34,11 +33,6 @@
           };
           secrets.token = osConfig.age.secrets.rclone-gdrive-token.path;
           mounts."" = mount "GDrive";
-        };
-        remotes.box = {
-          config.type = "box";
-          secrets.token = osConfig.age.secrets.rclone-box-token.path;
-          mounts."" = mount "Box";
         };
       };
     };
