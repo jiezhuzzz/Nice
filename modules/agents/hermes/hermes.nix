@@ -1,6 +1,10 @@
 # Run `hermes auth add openai-codex` once per host: the OAuth token lives in
-# ~/.hermes/auth.json, outside Nix.
-{inputs, ...}: {
+# $HERMES_HOME/auth.json, outside Nix.
+{
+  den,
+  inputs,
+  ...
+}: {
   # A release tag, not main: main takes a canary build every day.
   #
   # No nixpkgs follows: upstream patches the patchelf of its own pinned nixpkgs
@@ -11,19 +15,30 @@
     inputs.home-manager.follows = "home-manager";
   };
 
-  den.aspects.hermes.homeManager = {inputs', ...}: {
-    imports = [inputs.hermes-agent.homeManagerModules.default];
+  den.aspects.hermes = {
+    includes = [den.aspects.hermes._];
 
-    programs.hermes-agent.enable = true;
+    homeManager = {
+      config,
+      inputs',
+      ...
+    }: {
+      imports = [inputs.hermes-agent.homeManagerModules.default];
 
-    services.hermes-agent = {
-      enable = true;
-      settings.model = {
-        provider = "openai-codex";
-        default = "gpt-6-astra";
+      programs.hermes-agent.enable = true;
+
+      services.hermes-agent = {
+        enable = true;
+        # Hermes keeps its config, credentials, state and cache in this one
+        # directory and cannot split them across the XDG base directories.
+        hermesHome = "${config.xdg.dataHome}/hermes";
+        settings.model = {
+          provider = "openai-codex";
+          default = "gpt-6-astra";
+        };
       };
-    };
 
-    home.packages = [inputs'.llm-agents.packages.hermes-hud];
+      home.packages = [inputs'.llm-agents.packages.hermes-hud];
+    };
   };
 }
