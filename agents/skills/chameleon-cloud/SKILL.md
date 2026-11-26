@@ -140,7 +140,6 @@ SSH_JUMP=cc@<floating-ip> <skill-base-dir>/scripts/setup-instance.sh <private-ip
 ```
 
 After stale host key removal, it runs these steps per instance, in order:
-- `rclone`: copy the GDrive and Box OAuth tokens with `nix run github:jiezhuzzz/nice#sync-rclone-tokens -- cc@<ip>` (best-effort; requires `/run/agenix/rclone-{gdrive,box}-token` on the operator host). It connects through the operator's ssh config, so `SSH_JUMP` and `SSH_KEY` do not apply to it. Set `NICE_FLAKE` to run it from another flake reference, such as a local checkout.
 - `terminfo`: install the Ghostty terminfo.
 - `apt`: apt update/upgrade, then install uidmap/podman.
 - `userns`: apply the AppArmor unprivileged-userns fix (required for rootless podman).
@@ -148,15 +147,6 @@ After stale host key removal, it runs these steps per instance, in order:
 - `nix`: install Nix.
 
 Set `STEPS` to run a subset, e.g. `STEPS=nix` when the user wants Nix but not their config. Run instances in parallel as background tasks.
-
-### Ordering note
-
-On a fresh chameleon node, run `setup-instance.sh` **before** the first `home-manager switch --flake github:jiezhuzzz/nice#chameleon`. The provisioning script writes `~/.local/share/rclone/{gdrive,box}-token`, which the rclone home-manager module reads at activation. If `home-manager switch` runs first on a node without the tokens, `rclone-config.service` fails and the `rclone-mount:@{gdrive,box}.service` units do not start. Recovery after dropping the tokens in:
-
-```bash
-systemctl --user start rclone-config.service
-systemctl --user start 'rclone-mount:@gdrive.service' 'rclone-mount:@box.service'
-```
 
 ## Quick Reference
 

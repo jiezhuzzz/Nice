@@ -44,5 +44,3 @@ nix run .#<name> -- switch
 ```
 
 On a first switch, before `darwin-rebuild` or `home-manager` is installed, run `sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#<name>` on a Mac and `nix run home-manager/master -- switch --flake .#<name>` on a standalone host.
-
-Before the first switch on goku or vegeta, run `nix run .#sync-rclone-tokens` (hosts as arguments, default goku vegeta) from a machine that decrypts the rclone tokens (a Mac, nixps or nixmachine), so the rclone mounts find them at activation. On a Chameleon node, the rclone step of `agents/skills/chameleon-cloud/scripts/setup-instance.sh` copies them through the same app.

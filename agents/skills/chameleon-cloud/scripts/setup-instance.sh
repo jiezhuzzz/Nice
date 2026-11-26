@@ -7,23 +7,14 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-STEPS="${STEPS:-rclone terminfo apt userns linger nix}"
+STEPS="${STEPS:-terminfo apt userns linger nix}"
 SSH_KEY="${SSH_KEY:-/run/agenix/chameleon-ssh-key}"
-NICE_FLAKE="${NICE_FLAKE:-github:jiezhuzzz/nice}"
 SSH_OPTS=(-o StrictHostKeyChecking=accept-new -i "$SSH_KEY")
 if [ -n "${SSH_JUMP:-}" ]; then
   # OpenSSH does not pass -i through to a -J hop, so a non-default SSH_KEY
   # would not reach the bastion.
   SSH_OPTS+=(-o "ProxyCommand=ssh -i $SSH_KEY -o StrictHostKeyChecking=accept-new -W %h:%p $SSH_JUMP")
 fi
-
-step_rclone() {
-  # sync-rclone-tokens connects through the ssh config, ignoring SSH_JUMP and
-  # SSH_KEY, and without accept-new, so record the reinstalled node's host key
-  # first.
-  ssh "${SSH_OPTS[@]}" cc@"$1" true
-  nix run "$NICE_FLAKE#sync-rclone-tokens" -- cc@"$1"
-}
 
 step_terminfo() {
   infocmp -x xterm-ghostty | ssh "${SSH_OPTS[@]}" cc@"$1" -- tic -x -

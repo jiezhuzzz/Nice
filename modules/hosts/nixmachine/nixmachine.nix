@@ -51,6 +51,7 @@
       includes = with den.aspects; [
         gaming
         hermes
+        rclone
       ];
 
       # Driven over SSH, which has no seat session to hand out /dev/snd ACLs.

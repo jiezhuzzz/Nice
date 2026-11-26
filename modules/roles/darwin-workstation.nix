@@ -11,7 +11,6 @@
     provides.to-users.includes = with den.aspects; [
       macos
       workstation
-      rclone
     ];
   };
 }

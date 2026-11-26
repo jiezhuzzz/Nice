@@ -42,7 +42,6 @@
         "balenaetcher"
         "betterdisplay"
         "figma"
-        "fuse-t"
         "helium-browser"
         "iina"
         "karabiner-elements"

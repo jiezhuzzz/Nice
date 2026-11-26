@@ -8,11 +8,11 @@ in {
       chameleon-ssh-key = "ssh/chameleon.age";
       lab-ssh-key = "ssh/lab.age";
       home-ssh-key = "ssh/home.age";
-      rclone-gdrive-token = "rclone/gdrive.age";
-      rclone-box-token = "rclone/box.age";
       taskwarrior-sync = "taskwarrior/sync.age";
     }
     // scoped "homelab" {
+      rclone-gdrive-token = "rclone/gdrive.age";
+      rclone-box-token = "rclone/box.age";
       waqi-token = "glance/waqi-token.age";
       cloudflare-token = "caddy/cloudflare-token.age";
       litellm-provider-keys = "llm/provider-keys.age";

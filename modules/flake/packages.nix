@@ -12,9 +12,5 @@ in {
   in {
     inherit packages;
     checks = packages;
-    apps.sync-rclone-tokens = {
-      program = pkgs.sync-rclone-tokens;
-      inherit (pkgs.sync-rclone-tokens) meta;
-    };
   };
 }
